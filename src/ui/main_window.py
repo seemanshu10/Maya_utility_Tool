@@ -4,17 +4,14 @@ from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
                                QCheckBox)
 from PySide2.QtCore import Qt
 
-from maya import OpenMayaUI as omui
-import shiboken2
-
-def get_maya_main_window():
-    main_window_ptr = omui.MQtUtil.mainWindow()
-    return shiboken2.wrapInstance(int(main_window_ptr), QWidget)
 
 class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Rigging Utility Tool")
+        self.initUI()
+
+    def initUI(self):
 
         # Create a basic central widget
         main_layout = QVBoxLayout()
@@ -168,19 +165,3 @@ class RiggingUtilityTool(QMainWindow):
         self.status_bar = QStatusBar()
         self.status_bar.showMessage("Ready")
         self.setStatusBar(self.status_bar)
-
-def show_window():
-    global my_window
-    # check if already window open close
-    try:
-        my_window.close()
-        my_window.deleteLater()
-    except:
-        pass
-
-    maya_main_window = get_maya_main_window()
-    my_window = RiggingUtilityTool(parent=maya_main_window)
-    
-    my_window.show()
-
-show_window()
