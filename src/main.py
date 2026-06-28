@@ -15,7 +15,9 @@ class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Rigging Utility Tool")
+        self.initUI()
 
+    def initUI(self):
         # Create a basic central widget
         main_layout = QVBoxLayout()
         central_widget = QWidget()
