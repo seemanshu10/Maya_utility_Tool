@@ -12,25 +12,8 @@ def get_maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
     return shiboken2.wrapInstance(int(main_window_ptr), QWidget)
 
-
-# def reload_project(project_root):
-#     project_root = os.path.abspath(project_root)
-
-#     for name, module in list(sys.modules.items()):
-#         path = getattr(module, "__file__", None)
-#         if path and os.path.abspath(path).startswith(project_root): 
-#             try:
-#                 importlib.reload(module)
-#                 print(f"Reloaded {name}")
-#             except Exception as e:
-#                 print(f"Failed {name}: {e}")
-    
 def show_window():
     global my_window
-
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    # reload_project(project_root)
-
     # check if already window open close
     try:
         if my_window is not None:

@@ -28,8 +28,9 @@ class RiggingUtilityTool(QMainWindow):
 
         # Source Objects Side 
         self.load_select_obj_source_button = QPushButton("Load Selected Object")
-        self.load_select_obj_source_button.clicked.connect(self.load_selected_source_objects)
         self.clear_list_source_button = QPushButton("Clear")
+        self.load_select_obj_source_button.clicked.connect(lambda: self.load_selected_objects(self.source_obj_list))
+        self.clear_list_source_button.clicked.connect(lambda: self.clear_list(self.source_obj_list))
 
         source_buttons_layout = QHBoxLayout()
         source_buttons_layout.addWidget(self.load_select_obj_source_button)
@@ -42,8 +43,9 @@ class RiggingUtilityTool(QMainWindow):
 
         # target objects Side
         self.load_target_obj_button = QPushButton("Load Selected Object")
-        self.load_target_obj_button.clicked.connect(self.load_target_source_objects)
         self.clear_list_target_button = QPushButton("Clear")
+        self.load_target_obj_button.clicked.connect(lambda: self.load_selected_objects(self.target_obj_list))
+        self.clear_list_target_button.clicked.connect(lambda: self.clear_list(self.target_obj_list))
 
         target_buttons_layout = QHBoxLayout()
         target_buttons_layout.addWidget(self.load_target_obj_button)
@@ -60,7 +62,7 @@ class RiggingUtilityTool(QMainWindow):
 
         # creating Relationship by order 
         self.relationship_layout = QHBoxLayout()
-        relationship_label = QLabel("Relationship Label: ")
+        relationship_label = QLabel("Match By: ")
         radio_button_order = QRadioButton("Order")
         radio_button_name = QRadioButton("Name")
 
@@ -292,7 +294,7 @@ class RiggingUtilityTool(QMainWindow):
         self.third_tab.setLayout(copyskin_tab_layout)
 
     @Slot()
-    def load_selected_source_objects(self):
+    def load_selected_objects(self, list_widget_object):
     # Get selected objects in Maya
         selected_objects = cmds.ls(selection=True) or []
 
@@ -301,27 +303,17 @@ class RiggingUtilityTool(QMainWindow):
             return
 
         # adding sleected objects 
-        for obj in selected_objects:
-            
-            self.source_obj_list.addItem(obj)
-        print("Added Selected Objects in List")
-        self.status_bar.showMessage("Added Selected Objects in List")
+        for obj in selected_objects:     
+            list_widget_object.addItem(obj)
+        print(f"Added Selected Objects in object ListBox ")
+        self.status_bar.showMessage("Added Selected Objects in object ListBox")
 
     @Slot()
-    def load_target_source_objects(self):
-    # Get selected objects in Maya
-        selected_objects = cmds.ls(selection=True) or []
+    def clear_list(self, list_widget_object):
+        list_widget_object.clear()
+        print(f"List Box Cleared")
+        self.status_bar.showMessage("List Box Cleard ")
 
-        if not selected_objects:
-            cmds.warning("No objects selected in Maya.")
-            return
-
-        # adding sleected objects 
-        for obj in selected_objects:
-            
-            self.target_obj_list.addItem(obj)
-        print("Added Selected Objects in List")
-        self.status_bar.showMessage("Added Selected Objects in List")
 
     def initUI(self):
         # Create a basic central widget

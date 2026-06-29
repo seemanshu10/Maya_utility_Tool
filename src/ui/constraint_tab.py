@@ -68,11 +68,11 @@ class ConstraintUI(QWidget):
         constraint_options_layout.addWidget(translate_y_checkbox, 0, 3)
         constraint_options_layout.addWidget(translate_z_checkbox, 0, 4)
 
-        constraint_options_layout.addWidget(rotate_label, 1, 0, alignment=Qt.AlignRight)
-        constraint_options_layout.addWidget(rotate_all_checkbox, 1, 1)
-        constraint_options_layout.addWidget(rotate_x_checkbox, 1, 2)
-        constraint_options_layout.addWidget(rotate_y_checkbox, 1, 3)
-        constraint_options_layout.addWidget(rotate_z_checkbox, 1, 4)
+        # constraint_options_layout.addWidget(rotate_label, 1, 0, alignment=Qt.AlignRight)
+        # constraint_options_layout.addWidget(rotate_all_checkbox, 1, 1)
+        # constraint_options_layout.addWidget(rotate_x_checkbox, 1, 2)
+        # constraint_options_layout.addWidget(rotate_y_checkbox, 1, 3)
+        # constraint_options_layout.addWidget(rotate_z_checkbox, 1, 4)
 
         constraint_options_layout.addWidget(scale_label, 2, 0, alignment=Qt.AlignRight)
         constraint_options_layout.addWidget(scale_all_checkbox, 2, 1)
