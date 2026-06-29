@@ -1,14 +1,15 @@
-from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout, 
-                               QLabel, QListWidget, QHBoxLayout, QVBoxLayout, 
-                               QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
-                               QCheckBox, QFormLayout)
+from PySide2.QtWidgets import (QPushButton, QWidget, QGridLayout, QLabel, QListWidget,
+                               QVBoxLayout, QGroupBox, QCheckBox)
 from PySide2.QtCore import Qt
 
-def connection_tab_ui(self):
-        # create The connection tab
-        connection_tab_layout = QVBoxLayout()
 
-        # creation constraint Axes Group 
+class ConnectionUI(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.connection_tab_ui()
+
+    def connection_tab_ui(self):
+        connection_tab_layout = QVBoxLayout(self)
         self.connection_axes_group = QGroupBox("Constraint Axes ")
         self.connection_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
@@ -47,7 +48,6 @@ def connection_tab_ui(self):
         self.connection_options_layout.addWidget(scale_y_checkbox, 2, 3)
         self.connection_options_layout.addWidget(scale_z_checkbox, 2, 4)
 
-        # All connection Atrributes List 
         self.grid_attributes_layout = QGridLayout()
         self.all_connection_label = QLabel("All Connections Attributes")
         self.all_connection_listwidget = QListWidget()
@@ -66,12 +66,9 @@ def connection_tab_ui(self):
         self.grid_attributes_layout.addWidget(self.remove_item_button, 2, 1)
         self.grid_attributes_layout.addWidget(self.clear_attributes_button, 2, 2)
 
-        # Create connection buttons 
         self.create_connection_button = QPushButton("Create Connections")
 
+        self.connection_axes_group.setLayout(self.connection_options_layout)
         connection_tab_layout.addWidget(self.connection_axes_group)
         connection_tab_layout.addLayout(self.grid_attributes_layout)
         connection_tab_layout.addWidget(self.create_connection_button)
-
-        self.connection_axes_group.setLayout(self.connection_options_layout)
-        self.second_tab.setLayout(connection_tab_layout)
