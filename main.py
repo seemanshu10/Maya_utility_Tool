@@ -118,7 +118,6 @@ class RiggingUtilityTool(QMainWindow):
         self.objects_grid_layout.addLayout(target_column_layout, 0, 1)
 
         # creating Relationship by order 
-        # creating Relationship by order
         self.match_group = QHBoxLayout()
 
         # Reduce the space around the layout
@@ -151,6 +150,10 @@ class RiggingUtilityTool(QMainWindow):
         self.main_tab_widget.addTab(self.third_tab, "Copy Skin")
 
         # self.constraint_tab_ui()
+        # Status bar  
+        self.status_bar = QStatusBar()
+        self.status_bar.showMessage("Ready")
+        self.setStatusBar(self.status_bar)
 
     def constraint_tab_ui(self):
         # Creating Constraint tab 
@@ -159,25 +162,25 @@ class RiggingUtilityTool(QMainWindow):
         # Constraint Type 
         constraint_type_layout = QHBoxLayout()
         constraint_type_label = QLabel("Constraint Type: ")
-        constraint_type_combobox = QComboBox()
-        constraint_type_combobox.addItem("Parent Constraint")
-        constraint_type_combobox.addItem("Point Constraint")
-        constraint_type_combobox.addItem("Orient Constraint")
-        constraint_type_combobox.addItem("Scale Constraint")
+        self.constraint_type_combobox = QComboBox()
+        self.constraint_type_combobox.addItem("Parent Constraint")
+        self.constraint_type_combobox.addItem("Point Constraint")
+        self.constraint_type_combobox.addItem("Orient Constraint")
+        self.constraint_type_combobox.addItem("Scale Constraint")
 
         constraint_type_layout.addWidget(constraint_type_label, alignment=Qt.AlignRight)
-        constraint_type_layout.addWidget(constraint_type_combobox, alignment=Qt.AlignLeft)
+        constraint_type_layout.addWidget(self.constraint_type_combobox, alignment=Qt.AlignLeft)
 
         # maintain offset Options Creation 
         maintain_offset_layout = QHBoxLayout()
         maintain_offset = QLabel("Maintain Offset:")
-        offset_radio_on = QRadioButton("On")
-        offset_radio_off = QRadioButton("Off")
-        offset_radio_off.setChecked(True)
+        self.offset_radio_on = QRadioButton("On")
+        self.offset_radio_off = QRadioButton("Off")
+        self.offset_radio_off.setChecked(True)
 
         maintain_offset_layout.addWidget(maintain_offset, alignment=Qt.AlignRight)
-        maintain_offset_layout.addWidget(offset_radio_on, alignment=Qt.AlignLeft)
-        maintain_offset_layout.addWidget(offset_radio_off, alignment=Qt.AlignLeft)
+        maintain_offset_layout.addWidget(self.offset_radio_on, alignment=Qt.AlignLeft)
+        maintain_offset_layout.addWidget(self.offset_radio_off, alignment=Qt.AlignLeft)
 
         # constraint adding everything to main Tab widget 
         constraint_main_layout.addLayout(constraint_type_layout) 
@@ -189,40 +192,40 @@ class RiggingUtilityTool(QMainWindow):
         constraint_axes_group = QGroupBox("Constraint Axes ")
         constraint_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
-        self.translate_all_checkbox = QCheckBox("All")
-        translate_x_checkbox = QCheckBox("X")
-        translate_y_checkbox = QCheckBox("Y")
-        translate_z_checkbox = QCheckBox("Z")
+        self.translate_all_checkbox_constraint = QCheckBox("All")
+        self.translate_x_checkbox_constraint = QCheckBox("X")
+        self.translate_y_checkbox_constraint = QCheckBox("Y")
+        self.translate_z_checkbox_constraint = QCheckBox("Z")
 
         rotate_label = QLabel("Rotate ")
-        rotate_all_checkbox = QCheckBox("All")
-        rotate_x_checkbox = QCheckBox("X")
-        rotate_y_checkbox = QCheckBox("Y")
-        rotate_z_checkbox = QCheckBox("Z")
+        self.rotate_all_checkbox_constraint = QCheckBox("All")
+        self.rotate_x_checkbox_constraint = QCheckBox("X")
+        self.rotate_y_checkbox_constraint = QCheckBox("Y")
+        self.rotate_z_checkbox_constraint = QCheckBox("Z")
 
         scale_label = QLabel("Scale ")
-        scale_all_checkbox = QCheckBox("All")
-        scale_x_checkbox = QCheckBox("X")
-        scale_y_checkbox = QCheckBox("Y")
-        scale_z_checkbox = QCheckBox("Z")
+        self.scale_all_checkbox_constraint = QCheckBox("All")
+        self.scale_x_checkbox_constraint = QCheckBox("X")
+        self.scale_y_checkbox_constraint = QCheckBox("Y")
+        self.scale_z_checkbox_constraint = QCheckBox("Z")
 
         constraint_options_layout.addWidget(translate_label, 0, 0, alignment=Qt.AlignRight)
-        constraint_options_layout.addWidget(self.translate_all_checkbox, 0, 1)
-        constraint_options_layout.addWidget(translate_x_checkbox, 0, 2)
-        constraint_options_layout.addWidget(translate_y_checkbox, 0, 3)
-        constraint_options_layout.addWidget(translate_z_checkbox, 0, 4)
+        constraint_options_layout.addWidget(self.translate_all_checkbox_constraint, 0, 1)
+        constraint_options_layout.addWidget(self.translate_x_checkbox_constraint, 0, 2)
+        constraint_options_layout.addWidget(self.translate_y_checkbox_constraint, 0, 3)
+        constraint_options_layout.addWidget(self.translate_z_checkbox_constraint, 0, 4)
 
         constraint_options_layout.addWidget(rotate_label, 1, 0, alignment=Qt.AlignRight)
-        constraint_options_layout.addWidget(rotate_all_checkbox, 1, 1)
-        constraint_options_layout.addWidget(rotate_x_checkbox, 1, 2)
-        constraint_options_layout.addWidget(rotate_y_checkbox, 1, 3)
-        constraint_options_layout.addWidget(rotate_z_checkbox, 1, 4)
+        constraint_options_layout.addWidget(self.rotate_all_checkbox_constraint, 1, 1)
+        constraint_options_layout.addWidget(self.rotate_x_checkbox_constraint, 1, 2)
+        constraint_options_layout.addWidget(self.rotate_y_checkbox_constraint, 1, 3)
+        constraint_options_layout.addWidget(self.rotate_z_checkbox_constraint, 1, 4)
 
         constraint_options_layout.addWidget(scale_label, 2, 0, alignment=Qt.AlignRight)
-        constraint_options_layout.addWidget(scale_all_checkbox, 2, 1)
-        constraint_options_layout.addWidget(scale_x_checkbox, 2, 2)
-        constraint_options_layout.addWidget(scale_y_checkbox, 2, 3)
-        constraint_options_layout.addWidget(scale_z_checkbox, 2, 4)
+        constraint_options_layout.addWidget(self.scale_all_checkbox_constraint, 2, 1)
+        constraint_options_layout.addWidget(self.scale_x_checkbox_constraint, 2, 2)
+        constraint_options_layout.addWidget(self.scale_y_checkbox_constraint, 2, 3)
+        constraint_options_layout.addWidget(self.scale_z_checkbox_constraint, 2, 4)
         
         constraint_axes_group.setLayout(constraint_options_layout)
         constraint_main_layout.addWidget(constraint_axes_group)
@@ -257,18 +260,23 @@ class RiggingUtilityTool(QMainWindow):
 
         constraint_main_layout.addWidget(self.create_constraint_btn, alignment=Qt.AlignCenter)
 
+        # added all enable disbale 
+        if self.translate_all_checkbox_constraint.isChecked():
+            self.translate_x_checkbox_constraint.setEnabled(False)
+            self.translate_y_checkbox_constraint.setEnabled(False)
+            self.translate_z_checkbox_constraint.setEnabled(False)
+
         # addLAyouts in main_layout
         self.main_layout.addLayout(self.objects_grid_layout)    
         self.main_layout.addLayout(self.match_group)  
         self.main_layout.addWidget(self.main_tab_widget)
         
         self.central_widget.setLayout(self.main_layout)
-
-        # Status bar  
-        self.status_bar = QStatusBar()
-        self.status_bar.showMessage("Ready")
-        self.setStatusBar(self.status_bar)
-
+        self.create_constraint_btn.clicked.connect(self.create_constraints)
+        self.translate_all_checkbox_constraint.toggled.connect(self.update_translate_checkboxes)
+        self.rotate_all_checkbox_constraint.toggled.connect(self.update_rotate_checkboxes)
+        self.scale_all_checkbox_constraint.toggled.connect(self.update_scale_checkboxes)
+   
     def connection_tab_ui(self):
         # create The connection tab
         connection_tab_layout = QVBoxLayout()
@@ -277,40 +285,40 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_axes_group = QGroupBox("Constraint Axes ")
         self.connection_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
-        self.translate_all_checkbox = QCheckBox("All")
-        translate_x_checkbox = QCheckBox("X")
-        translate_y_checkbox = QCheckBox("Y")
-        translate_z_checkbox = QCheckBox("Z")
+        self.translate_all_checkbox_connection = QCheckBox("All")
+        self.translate_x_checkbox_connection = QCheckBox("X")
+        self.translate_y_checkbox_connection = QCheckBox("Y")
+        self.translate_z_checkbox_connection = QCheckBox("Z")
 
         rotate_label = QLabel("Rotate ")
-        rotate_all_checkbox = QCheckBox("All")
-        rotate_x_checkbox = QCheckBox("X")
-        rotate_y_checkbox = QCheckBox("Y")
-        rotate_z_checkbox = QCheckBox("Z")
+        self.rotate_all_checkbox_connection = QCheckBox("All")
+        self.rotate_x_checkbox_connection = QCheckBox("X")
+        self.rotate_y_checkbox_connection = QCheckBox("Y")
+        self.rotate_z_checkbox_connection = QCheckBox("Z")
 
         scale_label = QLabel("Scale ")
-        scale_all_checkbox = QCheckBox("All")
-        scale_x_checkbox = QCheckBox("X")
-        scale_y_checkbox = QCheckBox("Y")
-        scale_z_checkbox = QCheckBox("Z")
+        self.scale_all_checkbox_connection = QCheckBox("All")
+        self.scale_x_checkbox_connection = QCheckBox("X")
+        self.scale_y_checkbox_connection = QCheckBox("Y")
+        self.scale_z_checkbox_connection = QCheckBox("Z")
 
         self.connection_options_layout.addWidget(translate_label, 0, 0, alignment=Qt.AlignRight)
-        self.connection_options_layout.addWidget(self.translate_all_checkbox, 0, 1)
-        self.connection_options_layout.addWidget(translate_x_checkbox, 0, 2)
-        self.connection_options_layout.addWidget(translate_y_checkbox, 0, 3)
-        self.connection_options_layout.addWidget(translate_z_checkbox, 0, 4)
+        self.connection_options_layout.addWidget(self.translate_all_checkbox_connection, 0, 1)
+        self.connection_options_layout.addWidget(self.translate_x_checkbox_connection, 0, 2)
+        self.connection_options_layout.addWidget(self.translate_y_checkbox_connection, 0, 3)
+        self.connection_options_layout.addWidget(self.translate_z_checkbox_connection, 0, 4)
 
         self.connection_options_layout.addWidget(rotate_label, 1, 0, alignment=Qt.AlignRight)
-        self.connection_options_layout.addWidget(rotate_all_checkbox, 1, 1)
-        self.connection_options_layout.addWidget(rotate_x_checkbox, 1, 2)
-        self.connection_options_layout.addWidget(rotate_y_checkbox, 1, 3)
-        self.connection_options_layout.addWidget(rotate_z_checkbox, 1, 4)
+        self.connection_options_layout.addWidget(self.rotate_all_checkbox_connection, 1, 1)
+        self.connection_options_layout.addWidget(self.rotate_x_checkbox_connection, 1, 2)
+        self.connection_options_layout.addWidget(self.rotate_y_checkbox_connection, 1, 3)
+        self.connection_options_layout.addWidget(self.rotate_z_checkbox_connection, 1, 4)
 
         self.connection_options_layout.addWidget(scale_label, 2, 0, alignment=Qt.AlignRight)
-        self.connection_options_layout.addWidget(scale_all_checkbox, 2, 1)
-        self.connection_options_layout.addWidget(scale_x_checkbox, 2, 2)
-        self.connection_options_layout.addWidget(scale_y_checkbox, 2, 3)
-        self.connection_options_layout.addWidget(scale_z_checkbox, 2, 4)
+        self.connection_options_layout.addWidget(self.scale_all_checkbox_connection, 2, 1)
+        self.connection_options_layout.addWidget(self.scale_x_checkbox_connection, 2, 2)
+        self.connection_options_layout.addWidget(self.scale_y_checkbox_connection, 2, 3)
+        self.connection_options_layout.addWidget(self.scale_z_checkbox_connection, 2, 4)
 
         # All connection Atrributes List 
         self.grid_attributes_layout = QGridLayout()
@@ -424,6 +432,106 @@ class RiggingUtilityTool(QMainWindow):
         item = list_widget_object.takeItem(row)
         list_widget_object.insertItem(row + 1, item)
         list_widget_object.setCurrentRow(row + 1)
+
+    @Slot()
+    def update_translate_checkboxes(self, checked):
+        if checked:
+            self.translate_x_checkbox_constraint.setChecked(False)
+            self.translate_y_checkbox_constraint.setChecked(False)
+            self.translate_z_checkbox_constraint.setChecked(False)
+
+        self.translate_x_checkbox_constraint.setEnabled(not checked)
+        self.translate_y_checkbox_constraint.setEnabled(not checked)
+        self.translate_z_checkbox_constraint.setEnabled(not checked)
+
+    @Slot()
+    def update_rotate_checkboxes(self, checked):
+        if checked:
+            self.rotate_x_checkbox_constraint.setChecked(not checked)
+            self.rotate_y_checkbox_constraint.setChecked(not checked)
+            self.rotate_z_checkbox_constraint.setChecked(not checked)
+
+        self.rotate_x_checkbox_constraint.setEnabled(not checked)
+        self.rotate_y_checkbox_constraint.setEnabled(not checked)
+        self.rotate_z_checkbox_constraint.setEnabled(not checked)
+
+    @Slot()
+    def update_scale_checkboxes(self, checked):
+        if checked:
+            self.scale_x_checkbox_constraint.setChecked(not checked)
+            self.scale_y_checkbox_constraint.setChecked(not checked)
+            self.scale_z_checkbox_constraint.setChecked(not checked)
+
+        self.scale_x_checkbox_constraint.setEnabled(not checked)
+        self.scale_y_checkbox_constraint.setEnabled(not checked)
+        self.scale_z_checkbox_constraint.setEnabled(not checked)
+
+    @Slot()
+    def create_constraints(self):
+        source_objects = self.get_items_from_list(self.source_obj_list)
+        target_objects = self.get_items_from_list(self.target_obj_list)
+        print(source_objects)
+        print(target_objects)
+        if not source_objects or not target_objects:
+            print("Source And Target object list needs to be populated.")
+            self.status_bar.showMessage("Error: Source and Target object needs to be populated.")
+            return
+        
+        constraint_type = self.constraint_type_combobox.currentIndex()
+        print(constraint_type)
+        offset_type = self.offset_radio_on.isChecked()
+        print(offset_type)
+
+        translate_chkbox_ischecked = []
+        rotate_chkbox_ischecked = []
+        scale_chkBox_ischecked = []
+
+        if self.translate_all_checkbox_constraint.isChecked():
+            translate_chkbox_ischecked.append("x")
+            translate_chkbox_ischecked.append("y")
+            translate_chkbox_ischecked.append("z")
+
+        if self.translate_x_checkbox_constraint.isChecked():
+            translate_chkbox_ischecked.append("x")
+        if self.translate_y_checkbox_constraint.isChecked():
+            translate_chkbox_ischecked.append("y")
+        if self.translate_z_checkbox_constraint.isChecked():
+            translate_chkbox_ischecked.append("z")
+
+
+        if self.rotate_all_checkbox_constraint.isChecked():
+            rotate_chkbox_ischecked.append("x")
+            rotate_chkbox_ischecked.append("y")
+            rotate_chkbox_ischecked.append("z")
+
+        if self.rotate_x_checkbox_constraint.isChecked():
+            rotate_chkbox_ischecked.append("x")
+        if self.rotate_y_checkbox_constraint.isChecked():
+            rotate_chkbox_ischecked.append("y")
+        if self.rotate_z_checkbox_constraint.isChecked():
+            rotate_chkbox_ischecked.append("z")
+
+        if self.scale_all_checkbox_constraint.isChecked():
+            scale_chkBox_ischecked.append("x")
+            scale_chkBox_ischecked.append("y")
+            scale_chkBox_ischecked.append("z")
+
+        if self.scale_x_checkbox_constraint.isChecked():
+            scale_chkBox_ischecked.append("x")
+        if self.scale_z_checkbox_constraint.isChecked():
+            scale_chkBox_ischecked.append("y")
+        if self.scale_z_checkbox_constraint.isChecked():
+            scale_chkBox_ischecked.append("z")
+            
+        print(f" translate {translate_chkbox_ischecked}")
+        print(f" rotate {rotate_chkbox_ischecked}")
+        print(f" rotate {scale_chkBox_ischecked}")
+
+    def get_items_from_list(self, list_widget_object):
+        items = []
+        for i in range(list_widget_object.count()):
+            items.append(list_widget_object.item(i).text())
+        return items
 
 def show_window():
     global my_window
