@@ -2,6 +2,7 @@ from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
                                QLabel, QListWidget, QHBoxLayout, QVBoxLayout, 
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
                                QCheckBox, QFormLayout, QStyle)
+
 from PySide2.QtCore import Qt, Slot
 
 # maya Python API 
@@ -136,6 +137,9 @@ class RiggingUtilityTool(QMainWindow):
         self.match_group.addWidget(self.radio_button_order)
         self.match_group.addWidget(self.radio_button_name)
 
+        # connections matchby name 
+        self.radio_button_name.toggled.connect(self.radio_buttondisable)
+
         # Push everything to the left instead of spreading out
         self.match_group.addStretch()
 
@@ -260,11 +264,24 @@ class RiggingUtilityTool(QMainWindow):
 
         constraint_main_layout.addWidget(self.create_constraint_btn, alignment=Qt.AlignCenter)
 
-        # added all enable disbale 
+        self.translate_all_checkbox_constraint.setChecked(True)
+        self.rotate_all_checkbox_constraint.setChecked(True)
+        self.scale_all_checkbox_constraint.setChecked(True)
+        # # added all enable disbale 
         if self.translate_all_checkbox_constraint.isChecked():
             self.translate_x_checkbox_constraint.setEnabled(False)
             self.translate_y_checkbox_constraint.setEnabled(False)
             self.translate_z_checkbox_constraint.setEnabled(False)
+
+        if self.rotate_all_checkbox_constraint.isChecked():
+            self.rotate_x_checkbox_constraint.setEnabled(False)
+            self.rotate_y_checkbox_constraint.setEnabled(False)
+            self.rotate_z_checkbox_constraint.setEnabled(False)
+
+        if self.scale_all_checkbox_constraint.isChecked():
+            self.scale_x_checkbox_constraint.setEnabled(False)
+            self.scale_y_checkbox_constraint.setEnabled(False)
+            self.scale_z_checkbox_constraint.setEnabled(False)
 
         # addLAyouts in main_layout
         self.main_layout.addLayout(self.objects_grid_layout)    
@@ -391,6 +408,37 @@ class RiggingUtilityTool(QMainWindow):
         copyskin_tab_layout.addWidget(self.copy_skin_btn)
         self.third_tab.setLayout(copyskin_tab_layout)
     
+    def get_object_pairs(self):
+        source_objects = self.get_items_from_list(self.source_obj_list)
+        target_objects = self.get_items_from_list(self.target_obj_list)
+        print(source_objects)
+        print(target_objects)
+        if not source_objects or not target_objects:
+            print("Source And Target object list needs to be populated.")
+            self.status_bar.showMessage("Error: Source and Target object needs to be populated.")
+            return
+        
+        self.match_order_by = "Order"
+        if self.radio_button_name.isChecked():
+            self.match_order_by = "Name"
+
+        print(self.match_order_by)
+
+        pairs = []
+
+        # Match By Order
+        if self.radio_button_order.isChecked():
+            if len(source_objects) != len(target_objects):
+                cmds.warning("Source and Target lists must contain the same number of objects.")
+                return
+
+        for i in range(len(source_objects)):
+            pairs[source_objects[i]] = target_objects[i]
+
+        print(pairs)
+        return pairs
+            
+
     @Slot()
     def load_selected_objects(self, list_widget_object):
     # Get selected objects in Maya
@@ -405,6 +453,22 @@ class RiggingUtilityTool(QMainWindow):
             list_widget_object.addItem(obj)
         print(f"Added Selected Objects in object ListBox ")
         self.status_bar.showMessage("Added Selected Objects in object ListBox")
+
+    @Slot()
+    def radio_buttondisable(self, checked):
+        if checked:
+            self.target_obj_list.setEnabled(not checked)
+            self.load_target_obj_button.setEnabled(not checked)
+            self.clear_list_target_button.setEnabled(not checked)
+            self.target_move_up_btn.setEnabled(not checked)
+            self.target_move_down_btn.setEnabled(not checked)
+            
+        else:
+            self.target_obj_list.setEnabled(not checked)
+            self.load_target_obj_button.setEnabled(not checked)
+            self.clear_list_target_button.setEnabled(not checked)
+            self.target_move_up_btn.setEnabled(not checked)
+            self.target_move_down_btn.setEnabled(not checked)
 
     @Slot()
     def clear_list(self, list_widget_object):
@@ -476,56 +540,70 @@ class RiggingUtilityTool(QMainWindow):
             print("Source And Target object list needs to be populated.")
             self.status_bar.showMessage("Error: Source and Target object needs to be populated.")
             return
-        
+
         constraint_type = self.constraint_type_combobox.currentIndex()
         print(constraint_type)
         offset_type = self.offset_radio_on.isChecked()
         print(offset_type)
 
-        translate_chkbox_ischecked = []
-        rotate_chkbox_ischecked = []
-        scale_chkBox_ischecked = []
+        skip_translate = []
+        skip_rotate = []
+        skip_scale = []
 
-        if self.translate_all_checkbox_constraint.isChecked():
-            translate_chkbox_ischecked.append("x")
-            translate_chkbox_ischecked.append("y")
-            translate_chkbox_ischecked.append("z")
+        if not self.translate_all_checkbox_constraint.isChecked():
+            if not self.translate_x_checkbox_constraint.isChecked():
+                skip_translate.append("x")
+            if not self.translate_y_checkbox_constraint.isChecked():
+                skip_translate.append("y")
+            if not self.translate_z_checkbox_constraint.isChecked():
+                skip_translate.append("z")
 
-        if self.translate_x_checkbox_constraint.isChecked():
-            translate_chkbox_ischecked.append("x")
-        if self.translate_y_checkbox_constraint.isChecked():
-            translate_chkbox_ischecked.append("y")
-        if self.translate_z_checkbox_constraint.isChecked():
-            translate_chkbox_ischecked.append("z")
+        if not self.rotate_all_checkbox_constraint.isChecked():
+            if not self.rotate_x_checkbox_constraint.isChecked():
+                skip_rotate.append("x")
+            if not self.rotate_y_checkbox_constraint.isChecked():
+                skip_rotate.append("y")
+            if not self.rotate_z_checkbox_constraint.isChecked():
+                skip_rotate.append("z")
 
-
-        if self.rotate_all_checkbox_constraint.isChecked():
-            rotate_chkbox_ischecked.append("x")
-            rotate_chkbox_ischecked.append("y")
-            rotate_chkbox_ischecked.append("z")
-
-        if self.rotate_x_checkbox_constraint.isChecked():
-            rotate_chkbox_ischecked.append("x")
-        if self.rotate_y_checkbox_constraint.isChecked():
-            rotate_chkbox_ischecked.append("y")
-        if self.rotate_z_checkbox_constraint.isChecked():
-            rotate_chkbox_ischecked.append("z")
-
-        if self.scale_all_checkbox_constraint.isChecked():
-            scale_chkBox_ischecked.append("x")
-            scale_chkBox_ischecked.append("y")
-            scale_chkBox_ischecked.append("z")
-
-        if self.scale_x_checkbox_constraint.isChecked():
-            scale_chkBox_ischecked.append("x")
-        if self.scale_z_checkbox_constraint.isChecked():
-            scale_chkBox_ischecked.append("y")
-        if self.scale_z_checkbox_constraint.isChecked():
-            scale_chkBox_ischecked.append("z")
+        if not self.scale_all_checkbox_constraint.isChecked():
             
-        print(f" translate {translate_chkbox_ischecked}")
-        print(f" rotate {rotate_chkbox_ischecked}")
-        print(f" rotate {scale_chkBox_ischecked}")
+            if not self.scale_x_checkbox_constraint.isChecked():
+                skip_scale.append("x")
+            if not self.scale_z_checkbox_constraint.isChecked():
+                skip_scale.append("y")
+            if not self.scale_z_checkbox_constraint.isChecked():
+                skip_scale.append("z")
+                
+        # print(f" translate {skip_translate}")
+        # print(f" rotate {skip_rotate}")
+        # print(f" rotate {skip_scale}")
+
+        # match by order 
+        if self.radio_button_order.isChecked():
+            if len(source_objects) != len(target_objects):
+                cmds.warning("Source and Target lists must contain the same number of objects.")
+                return 
+
+        # match by name 
+        else:
+            target_dict = []
+            for obj in source_objects:
+                o = obj.split("_")[0]
+                target_dict.append(o)
+
+            print(target_dict)
+
+        for i in range(len(source_objects)):
+            if constraint_type == 0:
+                cmds.parentConstraint(source_objects[i], target_objects[i], mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
+            elif constraint_type == 1:
+                cmds.pointConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_translate)
+            if constraint_type == 2:
+                cmds.orientConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_rotate)
+            if constraint_type == 3:
+                cmds.scaleConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_scale) 
+
 
     def get_items_from_list(self, list_widget_object):
         items = []
