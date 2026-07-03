@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout, 
                                QLabel, QListWidget, QHBoxLayout, QVBoxLayout, 
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
-                               QCheckBox, QFormLayout, QStyle)
+                               QCheckBox, QFormLayout, QStyle, QLineEdit)
 
 from PySide2.QtCore import Qt, Slot
 
@@ -133,9 +133,16 @@ class RiggingUtilityTool(QMainWindow):
         self.radio_button_name = QRadioButton("Name")
         self.radio_button_order.setChecked(True)
 
+        # Suffix text box
+        self.suffix_lineedit = QLineEdit()
+        self.suffix_lineedit.setPlaceholderText("Target suffix (e.g. _bind)")
+        self.suffix_lineedit.setFixedWidth(250)
+        self.suffix_lineedit.setEnabled(False)
+
         self.match_group.addWidget(relationship_label)
         self.match_group.addWidget(self.radio_button_order)
         self.match_group.addWidget(self.radio_button_name)
+        self.match_group.addWidget(self.suffix_lineedit)
 
         # connections matchby name 
         self.radio_button_name.toggled.connect(self.radio_buttondisable)
@@ -267,7 +274,7 @@ class RiggingUtilityTool(QMainWindow):
         self.translate_all_checkbox_constraint.setChecked(True)
         self.rotate_all_checkbox_constraint.setChecked(True)
         self.scale_all_checkbox_constraint.setChecked(True)
-        # # added all enable disbale 
+        # added all enable disbale 
         if self.translate_all_checkbox_constraint.isChecked():
             self.translate_x_checkbox_constraint.setEnabled(False)
             self.translate_y_checkbox_constraint.setEnabled(False)
@@ -289,10 +296,12 @@ class RiggingUtilityTool(QMainWindow):
         self.main_layout.addWidget(self.main_tab_widget)
         
         self.central_widget.setLayout(self.main_layout)
+
+        # signals for constraints 
         self.create_constraint_btn.clicked.connect(self.create_constraints)
-        self.translate_all_checkbox_constraint.toggled.connect(self.update_translate_checkboxes)
-        self.rotate_all_checkbox_constraint.toggled.connect(self.update_rotate_checkboxes)
-        self.scale_all_checkbox_constraint.toggled.connect(self.update_scale_checkboxes)
+        self.translate_all_checkbox_constraint.toggled.connect(self.enable_disable_translate_constraints)
+        self.rotate_all_checkbox_constraint.toggled.connect(self.enable_disable_rotate_constraints)
+        self.scale_all_checkbox_constraint.toggled.connect(self.enable_disable_scale_constraints)
    
     def connection_tab_ui(self):
         # create The connection tab
@@ -356,6 +365,25 @@ class RiggingUtilityTool(QMainWindow):
         self.grid_attributes_layout.addWidget(self.remove_item_button, 2, 1)
         self.grid_attributes_layout.addWidget(self.clear_attributes_button, 2, 2)
 
+        self.translate_all_checkbox_connection.setChecked(True)
+        self.rotate_all_checkbox_connection.setChecked(True)
+        self.scale_all_checkbox_connection.setChecked(True)
+        # added all enable disbale 
+        if self.translate_all_checkbox_connection.isChecked():
+            self.translate_x_checkbox_connection.setEnabled(False)
+            self.translate_y_checkbox_connection.setEnabled(False)
+            self.translate_z_checkbox_connection.setEnabled(False)
+
+        if self.rotate_all_checkbox_connection.isChecked():
+            self.rotate_x_checkbox_connection.setEnabled(False)
+            self.rotate_y_checkbox_connection.setEnabled(False)
+            self.rotate_z_checkbox_connection.setEnabled(False)
+
+        if self.scale_all_checkbox_connection.isChecked():
+            self.scale_x_checkbox_connection.setEnabled(False)
+            self.scale_y_checkbox_connection.setEnabled(False)
+            self.scale_z_checkbox_connection.setEnabled(False)
+
         # Create connection buttons 
         self.create_connection_button = QPushButton("Create Connections")
 
@@ -365,6 +393,12 @@ class RiggingUtilityTool(QMainWindow):
 
         self.connection_axes_group.setLayout(self.connection_options_layout)
         self.second_tab.setLayout(connection_tab_layout)
+
+        # create signals 
+        self.translate_all_checkbox_connection.toggled.connect(self.enable_disable_translate_connection)
+        self.rotate_all_checkbox_connection.toggled.connect(self.enable_disable_rotate_connection)
+        self.scale_all_checkbox_connection.toggled.connect(self.enable_disable_scale_connection)
+        self.create_constraint_btn.clicked.connect(self.create_connections)
 
     def copyskin_tab_ui(self):
         # create The copy skin llayout 
@@ -401,49 +435,25 @@ class RiggingUtilityTool(QMainWindow):
         self.copyskin_form_layout.addRow(self.influence_label_2, self.influence_combo_box_2)
         self.copyskin_form_layout.addRow(self.influence_label_3, self.influence_combo_box_3)
 
+        # Set Defaults 
+        self.closest_point_radio_btn.setChecked(True)
+        self.influence_combo_box_1.setCurrentIndex(2)
+        self.influence_combo_box_2.setCurrentIndex(0)
+
         self.copy_skin_btn = QPushButton("Copy Skin")
 
         copy_skin_group.setLayout(self.copyskin_form_layout)
         copyskin_tab_layout.addWidget(copy_skin_group)
         copyskin_tab_layout.addWidget(self.copy_skin_btn)
         self.third_tab.setLayout(copyskin_tab_layout)
+
+        # signals for copy Skin button 
+        self.copy_skin_btn.clicked.connect(self.copy_skins)
     
-    def get_object_pairs(self):
-        source_objects = self.get_items_from_list(self.source_obj_list)
-        target_objects = self.get_items_from_list(self.target_obj_list)
-        print(source_objects)
-        print(target_objects)
-        if not source_objects or not target_objects:
-            print("Source And Target object list needs to be populated.")
-            self.status_bar.showMessage("Error: Source and Target object needs to be populated.")
-            return
-        
-        self.match_order_by = "Order"
-        if self.radio_button_name.isChecked():
-            self.match_order_by = "Name"
-
-        print(self.match_order_by)
-
-        pairs = []
-
-        # Match By Order
-        if self.radio_button_order.isChecked():
-            if len(source_objects) != len(target_objects):
-                cmds.warning("Source and Target lists must contain the same number of objects.")
-                return
-
-        for i in range(len(source_objects)):
-            pairs[source_objects[i]] = target_objects[i]
-
-        print(pairs)
-        return pairs
-            
-
     @Slot()
     def load_selected_objects(self, list_widget_object):
     # Get selected objects in Maya
         selected_objects = cmds.ls(selection=True) or []
-
         if not selected_objects:
             cmds.warning("No objects selected in Maya.")
             return
@@ -462,6 +472,7 @@ class RiggingUtilityTool(QMainWindow):
             self.clear_list_target_button.setEnabled(not checked)
             self.target_move_up_btn.setEnabled(not checked)
             self.target_move_down_btn.setEnabled(not checked)
+            self.suffix_lineedit.setEnabled(checked)
             
         else:
             self.target_obj_list.setEnabled(not checked)
@@ -469,6 +480,7 @@ class RiggingUtilityTool(QMainWindow):
             self.clear_list_target_button.setEnabled(not checked)
             self.target_move_up_btn.setEnabled(not checked)
             self.target_move_down_btn.setEnabled(not checked)
+            self.suffix_lineedit.setEnabled(checked)
 
     @Slot()
     def clear_list(self, list_widget_object):
@@ -498,7 +510,7 @@ class RiggingUtilityTool(QMainWindow):
         list_widget_object.setCurrentRow(row + 1)
 
     @Slot()
-    def update_translate_checkboxes(self, checked):
+    def enable_disable_translate_constraints(self, checked):
         if checked:
             self.translate_x_checkbox_constraint.setChecked(False)
             self.translate_y_checkbox_constraint.setChecked(False)
@@ -509,7 +521,7 @@ class RiggingUtilityTool(QMainWindow):
         self.translate_z_checkbox_constraint.setEnabled(not checked)
 
     @Slot()
-    def update_rotate_checkboxes(self, checked):
+    def enable_disable_rotate_constraints(self, checked):
         if checked:
             self.rotate_x_checkbox_constraint.setChecked(not checked)
             self.rotate_y_checkbox_constraint.setChecked(not checked)
@@ -520,7 +532,7 @@ class RiggingUtilityTool(QMainWindow):
         self.rotate_z_checkbox_constraint.setEnabled(not checked)
 
     @Slot()
-    def update_scale_checkboxes(self, checked):
+    def enable_disable_scale_constraints(self, checked):
         if checked:
             self.scale_x_checkbox_constraint.setChecked(not checked)
             self.scale_y_checkbox_constraint.setChecked(not checked)
@@ -534,17 +546,13 @@ class RiggingUtilityTool(QMainWindow):
     def create_constraints(self):
         source_objects = self.get_items_from_list(self.source_obj_list)
         target_objects = self.get_items_from_list(self.target_obj_list)
-        print(source_objects)
-        print(target_objects)
-        if not source_objects or not target_objects:
-            print("Source And Target object list needs to be populated.")
-            self.status_bar.showMessage("Error: Source and Target object needs to be populated.")
-            return
+        # print(source_objects)
+        # print(target_objects)
 
         constraint_type = self.constraint_type_combobox.currentIndex()
-        print(constraint_type)
+        # print(constraint_type)
         offset_type = self.offset_radio_on.isChecked()
-        print(offset_type)
+        # print(offset_type)
 
         skip_translate = []
         skip_rotate = []
@@ -570,7 +578,7 @@ class RiggingUtilityTool(QMainWindow):
             
             if not self.scale_x_checkbox_constraint.isChecked():
                 skip_scale.append("x")
-            if not self.scale_z_checkbox_constraint.isChecked():
+            if not self.scale_y_checkbox_constraint.isChecked():
                 skip_scale.append("y")
             if not self.scale_z_checkbox_constraint.isChecked():
                 skip_scale.append("z")
@@ -581,29 +589,188 @@ class RiggingUtilityTool(QMainWindow):
 
         # match by order 
         if self.radio_button_order.isChecked():
-            if len(source_objects) != len(target_objects):
-                cmds.warning("Source and Target lists must contain the same number of objects.")
-                return 
+
+            if not source_objects or not target_objects:
+                print("Source and Target object lists need to be populated.")
+                self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
+                
+
+                if self.radio_button_order.isChecked() and len(source_objects) != len(target_objects):
+                    cmds.warning("Source and Target lists must contain the same number of objects.")
+                    self.status_bar.showMessage("Error: Source and Target lists must contain the same number of objects.")
+                    return
+
+            for i in range(len(source_objects)):
+                if constraint_type == 0:
+                    cmds.parentConstraint(source_objects[i], target_objects[i], mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
+                elif constraint_type == 1:
+                    cmds.pointConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_translate)
+                if constraint_type == 2:
+                    cmds.orientConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_rotate)
+                if constraint_type == 3:
+                    cmds.scaleConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_scale) 
 
         # match by name 
         else:
-            target_dict = []
+            # Only the source list is Checked if it is filled
+            if not source_objects:
+                cmds.warning("Source object list needs to be populated.")
+                self.status_bar.showMessage("Error: Source object list needs to be populated.")
+                return
+            
+            suffix = self.suffix_lineedit.text().strip()
+            # print(suffix)
             for obj in source_objects:
-                o = obj.split("_")[0]
-                target_dict.append(o)
+                target_suffix = obj.rsplit("_", 1)[0]
+                target_name = f"{target_suffix}{suffix}"
 
-            print(target_dict)
+                if not cmds.objExists(target_name):
+                    cmds.warning("{} does not exist.".format(target_name))
+                    continue
+                # target_dict.append(target_name)
+                # print(target_suffix)
+                if constraint_type == 0:
+                    cmds.parentConstraint(obj, target_name, mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
+                elif constraint_type == 1:
+                    cmds.pointConstraint(obj, target_name, mo=offset_type, skip=skip_translate)
+                if constraint_type == 2:
+                    cmds.orientConstraint(obj, target_name, mo=offset_type, skip=skip_rotate)
+                if constraint_type == 3:
+                    cmds.scaleConstraint(obj, target_name, mo=offset_type, skip=skip_scale)  
 
-        for i in range(len(source_objects)):
-            if constraint_type == 0:
-                cmds.parentConstraint(source_objects[i], target_objects[i], mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
-            elif constraint_type == 1:
-                cmds.pointConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_translate)
-            if constraint_type == 2:
-                cmds.orientConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_rotate)
-            if constraint_type == 3:
-                cmds.scaleConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_scale) 
+            # print(target_dict)
 
+    @Slot()
+    def create_connections(self):
+        source_objects = self.get_items_from_list(self.source_obj_list)
+        target_objects = self.get_items_from_list(self.target_obj_list)
+
+    @Slot()
+    def copy_skins(self):
+        source_objects = self.get_items_from_list(self.source_obj_list)
+        target_objects = self.get_items_from_list(self.target_obj_list)
+
+        association_type = ""
+        if self.closest_point_radio_btn.isChecked():
+            association_type = "closestPoint"
+        elif self.ray_cast_radio_btn.isChecked():
+            association_type = "rayCast"
+        elif self.closest_component_radio_btn.isChecked():
+            association_type = "closestComponent"
+        else:
+            association_type = "closestPoint"
+
+        uv_space_attributes = ()
+        if self.uv_space_radio_btn.isChecked():
+            uv_space_attributes = ('map1', 'map1')
+
+        association_map = {
+            "Closest Joint": "closestJoint",
+            "Closest Bone": "closestBone",
+            "Name": "name",
+            "Label": "label",
+            "One To One": "oneToOne",
+        }
+
+        influenceAssociation_list = [
+            association_map[self.influence_combo_box_1.currentText()],
+            association_map[self.influence_combo_box_2.currentText()],
+            association_map[self.influence_combo_box_3.currentText()],
+        ]
+
+        # match by order 
+        if self.radio_button_order.isChecked():
+            if not source_objects or not target_objects:
+                print("Source and Target object lists need to be populated.")
+                self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
+                return
+
+            if len(source_objects) != len(target_objects):
+                cmds.warning("Source and Target lists must contain the same number of objects.")
+                self.status_bar.showMessage("Error: Source and Target lists must contain the same number of objects.")
+                return
+
+            for i in range(len(source_objects)):
+                source_obj = source_objects[i]
+                target_obj = target_objects[i]
+
+                source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
+                if not source_skin:
+                    cmds.warning("{} has no skinCluster.".format(source_obj))
+                    continue
+
+                source_skin = source_skin[0]
+
+                # Find target skinCluster
+                target_skin = cmds.ls(cmds.listHistory(target_obj), type="skinCluster")
+
+                if not target_skin:
+                    influences_joint_source = cmds.skinCluster(source_skin, q=True, influence=True)
+                    target_skin = cmds.skinCluster(influences_joint_source, target_obj, toSelectedBones=True, bindMethod=0, skinMethod=0, normalizeWeights=1,)
+
+                    if not target_skin:
+                        cmds.warning("Failed to create a skinCluster on {}.".format(target_obj))
+                        continue
+
+                    target_skin = target_skin[0]
+                else:
+                    target_skin = target_skin[0]
+
+                cmds.copySkinWeights(
+                    ss=source_skin,
+                    ds=target_skin,
+                    noMirror=True,
+                    surfaceAssociation=association_type,
+                    influenceAssociation=influenceAssociation_list,
+                )
+                print("Copied {} -> {}".format(source_obj, target_obj))
+        
+        # match by name 
+        else:
+            # Only the source list is Checked if it is filled
+            if not source_objects:
+                cmds.warning("Source object list needs to be populated.")
+                self.status_bar.showMessage("Error: Source object list needs to be populated.")
+                return
+            
+            suffix = self.suffix_lineedit.text().strip()
+            for obj in source_objects:
+                target_suffix = obj.rsplit("_", 1)[0]
+                target_name = f"{target_suffix}{suffix}"
+                print(f"{1}", {target_name})
+
+    @Slot()
+    def enable_disable_translate_connection(self, checked):
+        if checked:
+            self.translate_x_checkbox_connection.setChecked(False)
+            self.translate_y_checkbox_connection.setChecked(False)
+            self.translate_z_checkbox_connection.setChecked(False)
+
+        self.translate_x_checkbox_connection.setEnabled(not checked)
+        self.translate_y_checkbox_connection.setEnabled(not checked)
+        self.translate_z_checkbox_connection.setEnabled(not checked)
+
+    @Slot()
+    def enable_disable_rotate_connection(self, checked):
+        if checked:
+            self.rotate_x_checkbox_connection.setChecked(False)
+            self.rotate_y_checkbox_connection.setChecked(False)
+            self.rotate_z_checkbox_connection.setChecked(False)
+
+        self.rotate_x_checkbox_connection.setEnabled(not checked)
+        self.rotate_y_checkbox_connection.setEnabled(not checked)
+        self.rotate_z_checkbox_connection.setEnabled(not checked)
+
+    @Slot()
+    def enable_disable_scale_connection(self, checked):
+        if checked:
+            self.scale_x_checkbox_connection.setChecked(False)
+            self.scale_y_checkbox_connection.setChecked(False)
+            self.scale_z_checkbox_connection.setChecked(False)
+
+        self.scale_x_checkbox_connection.setEnabled(not checked)
+        self.scale_y_checkbox_connection.setEnabled(not checked)
+        self.scale_z_checkbox_connection.setEnabled(not checked)
 
     def get_items_from_list(self, list_widget_object):
         items = []
@@ -624,5 +791,5 @@ def show_window():
     my_window = RiggingUtilityTool(parent=maya_main_window)
     my_window.show()
 
-# show_window()
+
 
