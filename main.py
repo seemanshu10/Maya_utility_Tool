@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout, 
                                QLabel, QListWidget, QHBoxLayout, QVBoxLayout, 
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
-                               QCheckBox, QFormLayout, QStyle, QLineEdit)
+                               QCheckBox, QFormLayout, QStyle, QLineEdit, QFrame)
 
 from PySide2.QtCore import Qt, Slot
 
@@ -53,7 +53,7 @@ class RiggingUtilityTool(QMainWindow):
                 color: white;
             }
             QLineEdit {
-                color: black;
+                color: white;
                 border: 1px solid #00a8ff;
                 padding: 6px;
                 border-radius: 8px;
@@ -61,6 +61,10 @@ class RiggingUtilityTool(QMainWindow):
             QLineEdit:focus {
                 border: 2px solid purple;
             }
+                           
+            QLineEdit:disabled {
+                background-color: grey;
+            }   
                            
             QTextEdit {
                 color: black;
@@ -301,8 +305,11 @@ class RiggingUtilityTool(QMainWindow):
         maintain_offset_layout.addWidget(self.offset_radio_off, alignment=Qt.AlignLeft)
 
         # constraint adding everything to main Tab widget 
+
         constraint_main_layout.addLayout(constraint_type_layout) 
         constraint_main_layout.addLayout(maintain_offset_layout)
+        divider_offsets = self.create_divider_for_ui()
+        constraint_main_layout.addWidget(divider_offsets)
 
         self.first_tab.setLayout(constraint_main_layout)  
 
@@ -347,6 +354,8 @@ class RiggingUtilityTool(QMainWindow):
         
         constraint_axes_group.setLayout(constraint_options_layout)
         constraint_main_layout.addWidget(constraint_axes_group)
+        divider_offsets = self.create_divider_for_ui()
+        constraint_main_layout.addWidget(divider_offsets)
 
         # Constraint Button creation 
         self.constraint_button_layout = QHBoxLayout()
@@ -378,6 +387,8 @@ class RiggingUtilityTool(QMainWindow):
 
         # addLAyouts in main_layout
         self.main_layout.addLayout(self.objects_grid_layout)    
+        divider_main = self.create_divider_for_ui()
+        self.main_layout.addWidget(divider_main)
         self.main_layout.addLayout(self.match_group)  
         self.main_layout.addWidget(self.main_tab_widget)
         
@@ -479,9 +490,13 @@ class RiggingUtilityTool(QMainWindow):
         self.create_connection_button = self.primary_button("Create Connections")
 
         connection_tab_layout.addWidget(self.connection_axes_group)
-        connection_tab_layout.addLayout(self.grid_attributes_layout)
-        # connection_tab_layout.addWidget(self.create_connection_button)
 
+        divider_connection = self.create_divider_for_ui()
+        connection_tab_layout.addWidget(divider_connection)
+        connection_tab_layout.addLayout(self.grid_attributes_layout)
+        
+        divider_connection = self.create_divider_for_ui()
+        connection_tab_layout.addWidget(divider_connection)
         self.connection_button_layout.addWidget(self.create_connection_button)
         connection_tab_layout.addLayout(self.connection_button_layout)
         
@@ -500,7 +515,7 @@ class RiggingUtilityTool(QMainWindow):
         # signals For Populating cutom attributes 
         self.source_obj_list.itemSelectionChanged.connect(self.populate_custom_attributes)
         self.add_attributes_button.clicked.connect(self.add_custom_attributes_selected)
-
+    
     def copyskin_tab_ui(self):
 
         # create The copy skin llayout 
@@ -553,12 +568,21 @@ class RiggingUtilityTool(QMainWindow):
 
         copy_skin_group.setLayout(self.copyskin_form_layout)
         copyskin_tab_layout.addWidget(copy_skin_group)
+        divider_copyskin = self.create_divider_for_ui()
+        copyskin_tab_layout.addWidget(divider_copyskin)
         copyskin_tab_layout.addLayout(self.copyskin_button_layout)
         self.third_tab.setLayout(copyskin_tab_layout)
 
         # signals for copy Skin button 
         self.copy_skin_btn.clicked.connect(self.copy_skins)
     
+    def create_divider_for_ui(self):
+        divider = QFrame()
+        divider.setFrameShape(QFrame.HLine)
+        divider.setFrameShadow(QFrame.Sunken)
+
+        return divider
+
     @Slot()
     def add_custom_attributes_selected(self):
         selected_item = self.all_connection_listwidget.currentItem()

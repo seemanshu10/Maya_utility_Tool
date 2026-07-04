@@ -1,5 +1,5 @@
 from PySide2.QtWidgets import (QPushButton, QWidget, QGridLayout, QLabel, QListWidget,
-                               QVBoxLayout, QGroupBox, QCheckBox)
+                               QVBoxLayout, QGroupBox, QCheckBox, QFrame)
 from PySide2.QtCore import Qt
 
 
@@ -70,5 +70,11 @@ class ConnectionUI(QWidget):
 
         self.connection_axes_group.setLayout(self.connection_options_layout)
         connection_tab_layout.addWidget(self.connection_axes_group)
+
+        divider = QFrame()
+        divider.setFrameShape(QFrame.HLine)
+        divider.setFrameShadow(QFrame.Sunken)
+        connection_tab_layout.addWidget(divider)
+
         connection_tab_layout.addLayout(self.grid_attributes_layout)
         connection_tab_layout.addWidget(self.create_connection_button)
