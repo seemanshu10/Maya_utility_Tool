@@ -32,6 +32,101 @@ class RiggingUtilityTool(QMainWindow):
         self.constraint_tab_ui()
         self.connection_tab_ui()
         self.copyskin_tab_ui()
+        self.apply_theme()
+
+    def apply_theme(self):
+        self.setStyleSheet("""
+
+        /* Example CSS File */
+
+            
+
+            QPushButton {
+                background-color: #007FFF;
+                color: white;
+                border-radius: 10px;
+                padding: 8px 16px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #1c5980;
+            }        
+            QPushButton:disabled {
+                background-color: #cbd5e1;
+                color: white;
+            }
+            QLineEdit {
+                color: black;
+                border: 1px solid #00a8ff;
+                padding: 6px;
+                border-radius: 8px;
+            }
+            QLineEdit:focus {
+                border: 2px solid purple;
+            }
+                           
+            QTextEdit {
+                color: black;
+                font-size: 15px;
+                border: 1px solid #485460;
+                padding: 6px;
+                border-radius: 10px;
+            }
+            QTextEdit:focus {
+                border: 2px solid purple;
+            }
+                           
+            QTabWidget::pane {
+                border: 1px solid #555;
+                border-radius: 8px;
+                background: #323232;
+            }
+                           
+            QTabBar::tab {
+                background: #3a3a3a;
+                padding: 8px 18px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                margin-right: 2px;
+            }
+                           
+            QTabBar::tab:selected {
+                background: #3C7BEA;
+                color: white;
+            }
+
+            QTabBar::tab:hover {
+                background: #2980b9;
+            }
+        """)
+
+    def primary_button(self, text):
+
+        new_push_button = QPushButton(text)
+        # new_push_button.setMinimumHeight(42)
+        # new_push_button.setMinimumWidth(20)
+        new_push_button.setFixedSize(300, 40)
+        new_push_button.setStyleSheet("""
+            QPushButton{
+                background:#2E8BFF;
+                color:white;
+                border-radius:8px;
+                font-weight:bold;
+                font-size:11pt;
+            }
+
+            QPushButton:hover{
+                background:#5CA7FF;
+            }
+
+            QPushButton:pressed{
+                background:#1C6FD9;
+            }
+        """)
+
+        return new_push_button
 
     def main_ui(self):
 
@@ -242,34 +337,11 @@ class RiggingUtilityTool(QMainWindow):
         constraint_main_layout.addWidget(constraint_axes_group)
 
         # Constraint Button creation 
-        self.create_constraint_btn = QPushButton("Create Constraint")
-        self.create_constraint_btn.setFixedSize(160, 40)
-        self.create_constraint_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3B82F6;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 4px 12px;
-                font-size: 13px;
-                font-weight: 600;
-            }
-
-            QPushButton:hover {
-                background-color: #2563EB;
-            }
-
-            QPushButton:pressed {
-                background-color: #1D4ED8;
-            }
-
-            QPushButton:disabled {
-                background-color: #9CA3AF;
-                color: #E5E7EB;
-            }
-        """)
-
-        constraint_main_layout.addWidget(self.create_constraint_btn, alignment=Qt.AlignCenter)
+        self.constraint_button_layout = QHBoxLayout()
+        self.create_constraint_btn = self.primary_button("Create Constraint")
+        # self.create_constraint_btn.setFixedSize(160, 40)
+        self.constraint_button_layout.addWidget(self.create_constraint_btn)
+        constraint_main_layout.addLayout(self.constraint_button_layout)
 
         self.translate_all_checkbox_constraint.setChecked(True)
         self.rotate_all_checkbox_constraint.setChecked(True)
@@ -306,9 +378,8 @@ class RiggingUtilityTool(QMainWindow):
     def connection_tab_ui(self):
         # create The connection tab
         connection_tab_layout = QVBoxLayout()
-
-        # creation constraint Axes Group 
-        self.connection_axes_group = QGroupBox("Constraint Axes ")
+        # creation connection Axes Group 
+        self.connection_axes_group = QGroupBox("Connection Axes ")
         self.connection_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
         self.translate_all_checkbox_connection = QCheckBox("All")
@@ -398,9 +469,14 @@ class RiggingUtilityTool(QMainWindow):
         self.translate_all_checkbox_connection.toggled.connect(self.enable_disable_translate_connection)
         self.rotate_all_checkbox_connection.toggled.connect(self.enable_disable_rotate_connection)
         self.scale_all_checkbox_connection.toggled.connect(self.enable_disable_scale_connection)
-        self.create_constraint_btn.clicked.connect(self.create_connections)
+        self.create_connection_button.clicked.connect(self.create_connections)
+
+        # signals For Populating cutom attributes 
+        self.source_obj_list.itemSelectionChanged.connect(self.populate_custom_attributes)
+        self.add_attributes_button.clicked.connect(self.add_custom_attributes_selected)
 
     def copyskin_tab_ui(self):
+
         # create The copy skin llayout 
         copyskin_tab_layout = QVBoxLayout()
         copy_skin_group = QGroupBox("Skin Options ")
@@ -429,7 +505,6 @@ class RiggingUtilityTool(QMainWindow):
         self.copyskin_form_layout.addRow(self.association_label ,self.closest_point_radio_btn)
         self.copyskin_form_layout.addRow("" ,self.ray_cast_radio_btn)
         self.copyskin_form_layout.addRow("" ,self.closest_component_radio_btn)
-        self.copyskin_form_layout.addRow("" ,self.uv_space_radio_btn)
 
         self.copyskin_form_layout.addRow(self.influence_label_1, self.influence_combo_box_1)
         self.copyskin_form_layout.addRow(self.influence_label_2, self.influence_combo_box_2)
@@ -438,7 +513,8 @@ class RiggingUtilityTool(QMainWindow):
         # Set Defaults 
         self.closest_point_radio_btn.setChecked(True)
         self.influence_combo_box_1.setCurrentIndex(2)
-        self.influence_combo_box_2.setCurrentIndex(0)
+        self.influence_combo_box_2.setCurrentIndex(5)
+        self.influence_combo_box_3.setCurrentIndex(5)
 
         self.copy_skin_btn = QPushButton("Copy Skin")
 
@@ -450,6 +526,25 @@ class RiggingUtilityTool(QMainWindow):
         # signals for copy Skin button 
         self.copy_skin_btn.clicked.connect(self.copy_skins)
     
+    @Slot()
+    def add_custom_attributes_selected(self):
+        selected_custom = self.source_obj_list.currentItem().text()
+        self.selected_attributes_listwidget.addItem(selected_custom)
+
+    @Slot()
+    def populate_custom_attributes(self):
+        self.all_connection_listwidget.clear()
+        current_object_selected = self.source_obj_list.currentItem()
+
+        if not current_object_selected:
+            return
+        
+        current_source_object_selected = current_object_selected.text()
+        print(current_source_object_selected)
+        custom_attributes = cmds.listAttr(current_source_object_selected, userDefined=True) or []
+        for attribute in custom_attributes:
+            self.all_connection_listwidget.addItem(attribute)
+
     @Slot()
     def load_selected_objects(self, list_widget_object):
     # Get selected objects in Maya
@@ -640,10 +735,135 @@ class RiggingUtilityTool(QMainWindow):
 
             # print(target_dict)
 
+    def connect_attrs(self, source_obj, target_obj, connection_attrs):
+            if not cmds.objExists(source_obj):
+                cmds.warning("Source object {} does not exist.".format(source_obj))
+                return False
+            if not cmds.objExists(target_obj):
+                cmds.warning("Target object {} does not exist.".format(target_obj))
+                return False
+
+            for attr in connection_attrs:
+                source_attr = "{}.{}".format(source_obj, attr)
+                target_attr = "{}.{}".format(target_obj, attr)
+                if not cmds.objExists(source_attr):
+                    cmds.warning("Attribute {} does not exist on {}.".format(attr, source_obj))
+                    continue
+                if not cmds.objExists(target_attr):
+                    cmds.warning("Attribute {} does not exist on {}.".format(attr, target_obj))
+                    continue
+                cmds.connectAttr(source_attr, target_attr, force=True)
+            print("Connected {} -> {}".format(source_obj, target_obj))
+            return True
+
     @Slot()
     def create_connections(self):
         source_objects = self.get_items_from_list(self.source_obj_list)
         target_objects = self.get_items_from_list(self.target_obj_list)
+
+        translate_attrs = []
+        rotate_attrs = []
+        scale_attrs = []
+        if self.translate_all_checkbox_connection.isChecked():
+            translate_attrs = ["translateX", "translateY", "translateZ"]
+        else:
+            if self.translate_x_checkbox_connection.isChecked():
+                translate_attrs.append("translateX")
+            if self.translate_y_checkbox_connection.isChecked():
+                translate_attrs.append("translateY")
+            if self.translate_z_checkbox_connection.isChecked():
+                translate_attrs.append("translateZ")
+
+        
+        if self.rotate_all_checkbox_connection.isChecked():
+            rotate_attrs = ["rotateX", "rotateY", "rotateZ"]
+        else:
+            if self.rotate_x_checkbox_connection.isChecked():
+                rotate_attrs.append("rotateX")
+            if self.rotate_y_checkbox_connection.isChecked():
+                rotate_attrs.append("rotateY")
+            if self.rotate_z_checkbox_connection.isChecked():
+                rotate_attrs.append("rotateZ")
+
+        
+        if self.scale_all_checkbox_connection.isChecked():
+            scale_attrs = ["scaleX", "scaleY", "scaleZ"]
+        else:
+            if self.scale_x_checkbox_connection.isChecked():
+                scale_attrs.append("scaleX")
+            if self.scale_y_checkbox_connection.isChecked():
+                scale_attrs.append("scaleY")
+            if self.scale_z_checkbox_connection.isChecked():
+                scale_attrs.append("scaleZ")
+
+        connection_attrs = translate_attrs + rotate_attrs + scale_attrs
+        # print(connection_attrs)
+        if not connection_attrs:
+            cmds.warning("No translate/rotate/scale channels selected to connect.")
+            self.status_bar.showMessage("Error: No channels selected to connect.")
+            return
+
+        # match by order
+        if self.radio_button_order.isChecked():
+            if not source_objects or not target_objects:
+                print("Source and Target object lists need to be populated.")
+                self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
+                return
+
+            if len(source_objects) != len(target_objects):
+                cmds.warning("Source and Target lists must contain the same number of objects.")
+                self.status_bar.showMessage("Error: Source and Target lists must contain the same number of objects.")
+                return
+
+            for source_obj, target_obj in zip(source_objects, target_objects):
+                self.connect_attrs(source_obj, target_obj, connection_attrs)
+
+        # match by name
+        else:
+            if not source_objects:
+                cmds.warning("Source object list needs to be populated.")
+                self.status_bar.showMessage("Error: Source object list needs to be populated.")
+                return
+
+            suffix = self.suffix_lineedit.text().strip()
+            for source_obj in source_objects:
+                target_suffix = source_obj.rsplit("_", 1)[0]
+                target_obj = f"{target_suffix}{suffix}"
+
+                if not cmds.objExists(target_obj):
+                    cmds.warning("{} does not exist.".format(target_obj))
+                    continue
+
+                self.connect_attrs(source_obj, target_obj, connection_attrs)
+
+    def copy_skin_wts_mesh(self, source_obj, target_obj, association_type, influenceAssociation_list):
+        source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
+        if not source_skin:
+            cmds.warning("{} has no skinCluster.".format(source_obj))
+            return False
+
+        source_skin = source_skin[0]
+
+        target_skin = cmds.ls(cmds.listHistory(target_obj), type="skinCluster")
+        if not target_skin:
+            influences_joint_source = cmds.skinCluster(source_skin, q=True, influence=True)
+            target_skin = cmds.skinCluster(influences_joint_source, target_obj, toSelectedBones=True, bindMethod=0, skinMethod=0, normalizeWeights=1,)
+            if not target_skin:
+                cmds.warning("Failed to create a skinCluster on {}.".format(target_obj))
+                return False
+            target_skin = target_skin[0]
+        else:
+            target_skin = target_skin[0]
+
+        cmds.copySkinWeights(
+            ss=source_skin,
+            ds=target_skin,
+            noMirror=True,
+            surfaceAssociation=association_type,
+            influenceAssociation=influenceAssociation_list,
+        )
+        print("Copied {} -> {}".format(source_obj, target_obj))
+        return True
 
     @Slot()
     def copy_skins(self):
@@ -660,10 +880,6 @@ class RiggingUtilityTool(QMainWindow):
         else:
             association_type = "closestPoint"
 
-        uv_space_attributes = ()
-        if self.uv_space_radio_btn.isChecked():
-            uv_space_attributes = ('map1', 'map1')
-
         association_map = {
             "Closest Joint": "closestJoint",
             "Closest Bone": "closestBone",
@@ -672,15 +888,16 @@ class RiggingUtilityTool(QMainWindow):
             "One To One": "oneToOne",
         }
 
-        influenceAssociation_list = [
-            association_map[self.influence_combo_box_1.currentText()],
-            association_map[self.influence_combo_box_2.currentText()],
-            association_map[self.influence_combo_box_3.currentText()],
-        ]
+        influenceAssociation_list = []
+        for combo in (self.influence_combo_box_1, self.influence_combo_box_2, self.influence_combo_box_3):
+            influence_text = combo.currentText()
+            if influence_text == "None":
+                continue
+            influenceAssociation_list.append(association_map[influence_text])
 
-        # match by order 
+        # match by order
         if self.radio_button_order.isChecked():
-            if not source_objects or not target_objects:
+            if not source_objects and target_objects:
                 print("Source and Target object lists need to be populated.")
                 self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
                 return
@@ -691,53 +908,26 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             for i in range(len(source_objects)):
-                source_obj = source_objects[i]
-                target_obj = target_objects[i]
+                self.copy_skin_wts_mesh(source_objects[i], target_objects[i], association_type, influenceAssociation_list)
+                print(i)
 
-                source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
-                if not source_skin:
-                    cmds.warning("{} has no skinCluster.".format(source_obj))
-                    continue
-
-                source_skin = source_skin[0]
-
-                # Find target skinCluster
-                target_skin = cmds.ls(cmds.listHistory(target_obj), type="skinCluster")
-
-                if not target_skin:
-                    influences_joint_source = cmds.skinCluster(source_skin, q=True, influence=True)
-                    target_skin = cmds.skinCluster(influences_joint_source, target_obj, toSelectedBones=True, bindMethod=0, skinMethod=0, normalizeWeights=1,)
-
-                    if not target_skin:
-                        cmds.warning("Failed to create a skinCluster on {}.".format(target_obj))
-                        continue
-
-                    target_skin = target_skin[0]
-                else:
-                    target_skin = target_skin[0]
-
-                cmds.copySkinWeights(
-                    ss=source_skin,
-                    ds=target_skin,
-                    noMirror=True,
-                    surfaceAssociation=association_type,
-                    influenceAssociation=influenceAssociation_list,
-                )
-                print("Copied {} -> {}".format(source_obj, target_obj))
-        
-        # match by name 
+        # match by name
         else:
-            # Only the source list is Checked if it is filled
             if not source_objects:
                 cmds.warning("Source object list needs to be populated.")
                 self.status_bar.showMessage("Error: Source object list needs to be populated.")
                 return
-            
+
             suffix = self.suffix_lineedit.text().strip()
-            for obj in source_objects:
-                target_suffix = obj.rsplit("_", 1)[0]
-                target_name = f"{target_suffix}{suffix}"
-                print(f"{1}", {target_name})
+            for source_obj in source_objects:
+                target_suffix = source_obj.rsplit("_", 1)[0]
+                target_obj = f"{target_suffix}{suffix}"
+
+                if not cmds.objExists(target_obj):
+                    cmds.warning("{} does not exist.".format(target_obj))
+                    continue
+
+                self.copy_skin_wts_mesh(source_obj, target_obj, association_type, influenceAssociation_list)
 
     @Slot()
     def enable_disable_translate_connection(self, checked):
@@ -790,6 +980,7 @@ def show_window():
     maya_main_window = get_maya_main_window()
     my_window = RiggingUtilityTool(parent=maya_main_window)
     my_window.show()
+
 
 
 
