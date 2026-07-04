@@ -134,6 +134,10 @@ class RiggingUtilityTool(QMainWindow):
         self.target_obj_list = QListWidget()
         self.target_obj_list.setMinimumHeight(200)
 
+        # set Tool Tips 
+        self.source_obj_list.setToolTip("All the Source Objects")
+        self.target_obj_list.setToolTip("All the Target Objects")
+
         self.source_move_up_btn = QPushButton()
         self.source_move_up_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
         self.source_move_up_btn.setToolTip("Move up")
@@ -151,6 +155,10 @@ class RiggingUtilityTool(QMainWindow):
         # Source Objects Side 
         self.load_select_obj_source_button = QPushButton("Load Selected Objects")
         self.clear_list_source_button = QPushButton("Clear")
+
+        # Set Tool Tip 
+        self.load_select_obj_source_button.setToolTip("Load Selected objects to Source")
+        self.clear_list_source_button.setToolTip("Clear objects List Widget")
 
         source_buttons_layout = QHBoxLayout()
         source_buttons_layout.addWidget(self.load_select_obj_source_button)
@@ -178,6 +186,10 @@ class RiggingUtilityTool(QMainWindow):
         # target objects Side
         self.load_target_obj_button = QPushButton("Load Selected Objects")
         self.clear_list_target_button = QPushButton("Clear")
+
+        # Set Tool Tip 
+        self.load_target_obj_button.setToolTip("Load Selected objects to Target")
+        self.clear_list_target_button.setToolTip("Clear objects List Widget")
 
         # connections Target list buttons 
         self.load_target_obj_button.clicked.connect(lambda: self.load_selected_objects(self.target_obj_list))
@@ -248,6 +260,11 @@ class RiggingUtilityTool(QMainWindow):
         self.main_tab_widget.addTab(self.second_tab, "Connnection")
         self.main_tab_widget.addTab(self.third_tab, "Copy Skin")
 
+        # setToolTIp
+        self.first_tab.setToolTip("Constraint Tab")
+        self.second_tab.setToolTip("Connection Tab")
+        self.third_tab.setToolTip("CopySkin Tab")
+
         # self.constraint_tab_ui()
         # Status bar  
         self.status_bar = QStatusBar()
@@ -266,6 +283,7 @@ class RiggingUtilityTool(QMainWindow):
         self.constraint_type_combobox.addItem("Point Constraint")
         self.constraint_type_combobox.addItem("Orient Constraint")
         self.constraint_type_combobox.addItem("Scale Constraint")
+        self.constraint_type_combobox.setToolTip("Select The Type of constraint")
 
         constraint_type_layout.addWidget(constraint_type_label, alignment=Qt.AlignRight)
         constraint_type_layout.addWidget(self.constraint_type_combobox, alignment=Qt.AlignLeft)
@@ -276,7 +294,8 @@ class RiggingUtilityTool(QMainWindow):
         self.offset_radio_on = QRadioButton("On")
         self.offset_radio_off = QRadioButton("Off")
         self.offset_radio_off.setChecked(True)
-
+        self.offset_radio_on.setToolTip("Maintain Offset off and on ")
+    
         maintain_offset_layout.addWidget(maintain_offset, alignment=Qt.AlignRight)
         maintain_offset_layout.addWidget(self.offset_radio_on, alignment=Qt.AlignLeft)
         maintain_offset_layout.addWidget(self.offset_radio_off, alignment=Qt.AlignLeft)
@@ -334,6 +353,9 @@ class RiggingUtilityTool(QMainWindow):
         self.create_constraint_btn = self.primary_button("Create Constraint")
         self.constraint_button_layout.addWidget(self.create_constraint_btn)
         constraint_main_layout.addLayout(self.constraint_button_layout)
+
+        # Set Tool Tip 
+        self.create_constraint_btn.setToolTip("Create Constraints button")
 
         self.translate_all_checkbox_constraint.setChecked(True)
         self.rotate_all_checkbox_constraint.setChecked(True)
@@ -466,6 +488,9 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_axes_group.setLayout(self.connection_options_layout)
         self.second_tab.setLayout(connection_tab_layout)
 
+        # set ToolTips 
+        self.create_connection_button.setToolTip("Create Connections on selected objects")
+
         # create signals 
         self.translate_all_checkbox_connection.toggled.connect(self.enable_disable_translate_connection)
         self.rotate_all_checkbox_connection.toggled.connect(self.enable_disable_rotate_connection)
@@ -521,8 +546,10 @@ class RiggingUtilityTool(QMainWindow):
 
         self.copyskin_button_layout = QHBoxLayout()
         self.copy_skin_btn = self.primary_button("Copy Skin")
-
         self.copyskin_button_layout.addWidget(self.copy_skin_btn)
+
+        # set ToolTips 
+        self.create_connection_button.setToolTip("Copied skin To target Objects.")
 
         copy_skin_group.setLayout(self.copyskin_form_layout)
         copyskin_tab_layout.addWidget(copy_skin_group)
@@ -685,7 +712,6 @@ class RiggingUtilityTool(QMainWindow):
                 skip_rotate.append("z")
 
         if not self.scale_all_checkbox_constraint.isChecked():
-            
             if not self.scale_x_checkbox_constraint.isChecked():
                 skip_scale.append("x")
             if not self.scale_y_checkbox_constraint.isChecked():
@@ -747,15 +773,17 @@ class RiggingUtilityTool(QMainWindow):
                 if constraint_type == 3:
                     cmds.scaleConstraint(obj, target_name, mo=offset_type, skip=skip_scale)  
 
+
+        self.status_bar.showMessage(f"Constraints completed")
             # print(target_dict)
             
     def connect_attrs(self, source_obj, target_obj, connection_attrs):
         if not cmds.objExists(source_obj):
             cmds.warning("Source object {} does not exist.".format(source_obj))
-            return False
+            return
         if not cmds.objExists(target_obj):
             cmds.warning("Target object {} does not exist.".format(target_obj))
-            return False
+            return
 
         connected = False
         for attr in connection_attrs:
@@ -776,7 +804,6 @@ class RiggingUtilityTool(QMainWindow):
 
         if connected:
             print("Connected {} -> {}".format(source_obj, target_obj))
-        return connected
 
     def get_selected_custom_attributes(self):
         selected_attributes = []
@@ -829,7 +856,10 @@ class RiggingUtilityTool(QMainWindow):
                 scale_attrs.append("scaleZ")
 
         connection_attrs = translate_attrs + rotate_attrs + scale_attrs
-        custom_attrs = [attr for attr in self.get_selected_custom_attributes() if attr not in connection_attrs]
+        custom_attrs = []
+        for attr in self.get_selected_custom_attributes():
+            if attr not in connection_attrs:
+                custom_attrs.append(attr)
 
         if not connection_attrs and not custom_attrs:
             cmds.warning("No translate/rotate/scale channels or custom attributes selected to connect.")
@@ -876,11 +906,13 @@ class RiggingUtilityTool(QMainWindow):
                 if custom_attrs:
                     self.connect_attrs(source_obj, target_obj, custom_attrs)
 
+        self.status_bar.showMessage(f"Connections done.")
+
     def copy_skin_wts_mesh(self, source_obj, target_obj, association_type, influenceAssociation_list):
         source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
         if not source_skin:
             cmds.warning("{} has no skinCluster.".format(source_obj))
-            return False
+            return
 
         source_skin = source_skin[0]
 
@@ -890,7 +922,7 @@ class RiggingUtilityTool(QMainWindow):
             target_skin = cmds.skinCluster(influences_joint_source, target_obj, toSelectedBones=True, bindMethod=0, skinMethod=0, normalizeWeights=1,)
             if not target_skin:
                 cmds.warning("Failed to create a skinCluster on {}.".format(target_obj))
-                return False
+                return
             target_skin = target_skin[0]
         else:
             target_skin = target_skin[0]
@@ -903,7 +935,7 @@ class RiggingUtilityTool(QMainWindow):
             influenceAssociation=influenceAssociation_list,
         )
         print("Copied {} -> {}".format(source_obj, target_obj))
-        return True
+        self.status_bar.showMessage(f"Copied Skin weights done.")
 
     @Slot()
     def copy_skins(self):
