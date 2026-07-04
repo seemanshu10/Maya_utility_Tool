@@ -36,11 +36,6 @@ class RiggingUtilityTool(QMainWindow):
 
     def apply_theme(self):
         self.setStyleSheet("""
-
-        /* Example CSS File */
-
-            
-
             QPushButton {
                 background-color: #007FFF;
                 color: white;
@@ -105,8 +100,6 @@ class RiggingUtilityTool(QMainWindow):
     def primary_button(self, text):
 
         new_push_button = QPushButton(text)
-        # new_push_button.setMinimumHeight(42)
-        # new_push_button.setMinimumWidth(20)
         new_push_button.setFixedSize(300, 40)
         new_push_button.setStyleSheet("""
             QPushButton{
@@ -339,7 +332,6 @@ class RiggingUtilityTool(QMainWindow):
         # Constraint Button creation 
         self.constraint_button_layout = QHBoxLayout()
         self.create_constraint_btn = self.primary_button("Create Constraint")
-        # self.create_constraint_btn.setFixedSize(160, 40)
         self.constraint_button_layout.addWidget(self.create_constraint_btn)
         constraint_main_layout.addLayout(self.constraint_button_layout)
 
@@ -424,17 +416,22 @@ class RiggingUtilityTool(QMainWindow):
         self.selected_attributes_label = QLabel("Selected Attributes")
         self.selected_attributes_listwidget = QListWidget()
 
-        self.add_attributes_button = QPushButton("ADD")
+        self.add_attributes_button = QPushButton()
+        self.add_attributes_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
+        self.add_attributes_button.setFixedSize(40, 30)
         self.remove_item_button = QPushButton("Remove Item")
         self.clear_attributes_button = QPushButton("Clear")
 
         self.grid_attributes_layout.addWidget(self.all_connection_label, 0, 0)
-        self.grid_attributes_layout.addWidget(self.selected_attributes_label, 0, 1)
-        self.grid_attributes_layout.addWidget(self.all_connection_listwidget, 1, 0)
-        self.grid_attributes_layout.addWidget(self.selected_attributes_listwidget, 1, 1, 1, 2)
-        self.grid_attributes_layout.addWidget(self.add_attributes_button, 2, 0, 1, 1)
-        self.grid_attributes_layout.addWidget(self.remove_item_button, 2, 1)
-        self.grid_attributes_layout.addWidget(self.clear_attributes_button, 2, 2)
+        self.grid_attributes_layout.addWidget(self.selected_attributes_label, 0, 2)
+        self.grid_attributes_layout.addWidget(self.all_connection_listwidget, 1, 0, 3, 1)
+        self.grid_attributes_layout.addWidget(self.add_attributes_button, 1, 1, alignment=Qt.AlignCenter)
+        self.grid_attributes_layout.addWidget(self.selected_attributes_listwidget, 1, 2)
+
+        selected_buttons_layout = QHBoxLayout()
+        selected_buttons_layout.addWidget(self.remove_item_button)
+        selected_buttons_layout.addWidget(self.clear_attributes_button)
+        self.grid_attributes_layout.addLayout(selected_buttons_layout, 2, 2)
 
         self.translate_all_checkbox_connection.setChecked(True)
         self.rotate_all_checkbox_connection.setChecked(True)
@@ -456,12 +453,16 @@ class RiggingUtilityTool(QMainWindow):
             self.scale_z_checkbox_connection.setEnabled(False)
 
         # Create connection buttons 
-        self.create_connection_button = QPushButton("Create Connections")
+        self.connection_button_layout = QHBoxLayout()
+        self.create_connection_button = self.primary_button("Create Connections")
 
         connection_tab_layout.addWidget(self.connection_axes_group)
         connection_tab_layout.addLayout(self.grid_attributes_layout)
-        connection_tab_layout.addWidget(self.create_connection_button)
+        # connection_tab_layout.addWidget(self.create_connection_button)
 
+        self.connection_button_layout.addWidget(self.create_connection_button)
+        connection_tab_layout.addLayout(self.connection_button_layout)
+        
         self.connection_axes_group.setLayout(self.connection_options_layout)
         self.second_tab.setLayout(connection_tab_layout)
 
@@ -516,11 +517,16 @@ class RiggingUtilityTool(QMainWindow):
         self.influence_combo_box_2.setCurrentIndex(5)
         self.influence_combo_box_3.setCurrentIndex(5)
 
-        self.copy_skin_btn = QPushButton("Copy Skin")
+        # self.copy_skin_btn = QPushButton("Copy Skin")
+
+        self.copyskin_button_layout = QHBoxLayout()
+        self.copy_skin_btn = self.primary_button("Copy Skin")
+
+        self.copyskin_button_layout.addWidget(self.copy_skin_btn)
 
         copy_skin_group.setLayout(self.copyskin_form_layout)
         copyskin_tab_layout.addWidget(copy_skin_group)
-        copyskin_tab_layout.addWidget(self.copy_skin_btn)
+        copyskin_tab_layout.addLayout(self.copyskin_button_layout)
         self.third_tab.setLayout(copyskin_tab_layout)
 
         # signals for copy Skin button 
@@ -528,8 +534,14 @@ class RiggingUtilityTool(QMainWindow):
     
     @Slot()
     def add_custom_attributes_selected(self):
-        selected_custom = self.source_obj_list.currentItem().text()
-        self.selected_attributes_listwidget.addItem(selected_custom)
+        selected_item = self.all_connection_listwidget.currentItem()
+        if not selected_item:
+            self.status_bar.showMessage("Error: No attribute selected to add.")
+            return
+
+        attribute_name = selected_item.text()
+        self.selected_attributes_listwidget.addItem(attribute_name)
+        self.status_bar.showMessage(f"Added attribute '{attribute_name}' to selected list.")
 
     @Slot()
     def populate_custom_attributes(self):
@@ -551,13 +563,14 @@ class RiggingUtilityTool(QMainWindow):
         selected_objects = cmds.ls(selection=True) or []
         if not selected_objects:
             cmds.warning("No objects selected in Maya.")
+            self.status_bar.showMessage("Error: No objects selected in Maya.")
             return
 
         # adding sleected objects 
         for obj in selected_objects:     
             list_widget_object.addItem(obj)
         print(f"Added Selected Objects in object ListBox ")
-        self.status_bar.showMessage("Added Selected Objects in object ListBox")
+        self.status_bar.showMessage("Added selected objects to the list.")
 
     @Slot()
     def radio_buttondisable(self, checked):
@@ -581,7 +594,7 @@ class RiggingUtilityTool(QMainWindow):
     def clear_list(self, list_widget_object):
         list_widget_object.clear()
         print(f"List Box Cleared")
-        self.status_bar.showMessage("List Box Cleard ")
+        self.status_bar.showMessage("List box cleared.")
 
     @Slot()
     def move_selected_item_up(self, list_widget_object):
@@ -593,6 +606,7 @@ class RiggingUtilityTool(QMainWindow):
         # print(item.text())
         list_widget_object.insertItem(row - 1, item)
         list_widget_object.setCurrentRow(row - 1)
+        self.status_bar.showMessage("Selected Object Moved Up.")
 
     @Slot()
     def move_selected_item_down(self, list_widget_object):
@@ -603,6 +617,7 @@ class RiggingUtilityTool(QMainWindow):
         item = list_widget_object.takeItem(row)
         list_widget_object.insertItem(row + 1, item)
         list_widget_object.setCurrentRow(row + 1)
+        self.status_bar.showMessage("Selected Object Moved Down.")
 
     @Slot()
     def enable_disable_translate_constraints(self, checked):
@@ -688,7 +703,6 @@ class RiggingUtilityTool(QMainWindow):
             if not source_objects or not target_objects:
                 print("Source and Target object lists need to be populated.")
                 self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
-                
 
                 if self.radio_button_order.isChecked() and len(source_objects) != len(target_objects):
                     cmds.warning("Source and Target lists must contain the same number of objects.")
@@ -734,27 +748,47 @@ class RiggingUtilityTool(QMainWindow):
                     cmds.scaleConstraint(obj, target_name, mo=offset_type, skip=skip_scale)  
 
             # print(target_dict)
-
+            
     def connect_attrs(self, source_obj, target_obj, connection_attrs):
-            if not cmds.objExists(source_obj):
-                cmds.warning("Source object {} does not exist.".format(source_obj))
-                return False
-            if not cmds.objExists(target_obj):
-                cmds.warning("Target object {} does not exist.".format(target_obj))
-                return False
+        if not cmds.objExists(source_obj):
+            cmds.warning("Source object {} does not exist.".format(source_obj))
+            return False
+        if not cmds.objExists(target_obj):
+            cmds.warning("Target object {} does not exist.".format(target_obj))
+            return False
 
-            for attr in connection_attrs:
-                source_attr = "{}.{}".format(source_obj, attr)
-                target_attr = "{}.{}".format(target_obj, attr)
-                if not cmds.objExists(source_attr):
-                    cmds.warning("Attribute {} does not exist on {}.".format(attr, source_obj))
-                    continue
-                if not cmds.objExists(target_attr):
-                    cmds.warning("Attribute {} does not exist on {}.".format(attr, target_obj))
-                    continue
-                cmds.connectAttr(source_attr, target_attr, force=True)
+        connected = False
+        for attr in connection_attrs:
+            attr = attr.strip()
+            if not attr:
+                continue
+
+            source_attr = "{}.{}".format(source_obj, attr)
+            target_attr = "{}.{}".format(target_obj, attr)
+            if not cmds.objExists(source_attr):
+                cmds.warning("Attribute {} does not exist on {}.".format(attr, source_obj))
+                continue
+            if not cmds.objExists(target_attr):
+                cmds.warning("Attribute {} does not exist on {}.".format(attr, target_obj))
+                continue
+            cmds.connectAttr(source_attr, target_attr, force=True)
+            connected = True
+
+        if connected:
             print("Connected {} -> {}".format(source_obj, target_obj))
-            return True
+        return connected
+
+    def get_selected_custom_attributes(self):
+        selected_attributes = []
+
+        for i in range(self.selected_attributes_listwidget.count()):
+            item = self.selected_attributes_listwidget.item(i)
+            if item:
+                attribute_name = item.text().strip()
+                if attribute_name:
+                    selected_attributes.append(attribute_name)
+
+        return selected_attributes
 
     @Slot()
     def create_connections(self):
@@ -774,7 +808,6 @@ class RiggingUtilityTool(QMainWindow):
             if self.translate_z_checkbox_connection.isChecked():
                 translate_attrs.append("translateZ")
 
-        
         if self.rotate_all_checkbox_connection.isChecked():
             rotate_attrs = ["rotateX", "rotateY", "rotateZ"]
         else:
@@ -785,7 +818,6 @@ class RiggingUtilityTool(QMainWindow):
             if self.rotate_z_checkbox_connection.isChecked():
                 rotate_attrs.append("rotateZ")
 
-        
         if self.scale_all_checkbox_connection.isChecked():
             scale_attrs = ["scaleX", "scaleY", "scaleZ"]
         else:
@@ -797,10 +829,11 @@ class RiggingUtilityTool(QMainWindow):
                 scale_attrs.append("scaleZ")
 
         connection_attrs = translate_attrs + rotate_attrs + scale_attrs
-        # print(connection_attrs)
-        if not connection_attrs:
-            cmds.warning("No translate/rotate/scale channels selected to connect.")
-            self.status_bar.showMessage("Error: No channels selected to connect.")
+        custom_attrs = [attr for attr in self.get_selected_custom_attributes() if attr not in connection_attrs]
+
+        if not connection_attrs and not custom_attrs:
+            cmds.warning("No translate/rotate/scale channels or custom attributes selected to connect.")
+            self.status_bar.showMessage("Error: No channels or custom attributes selected to connect.")
             return
 
         # match by order
@@ -815,8 +848,12 @@ class RiggingUtilityTool(QMainWindow):
                 self.status_bar.showMessage("Error: Source and Target lists must contain the same number of objects.")
                 return
 
-            for source_obj, target_obj in zip(source_objects, target_objects):
-                self.connect_attrs(source_obj, target_obj, connection_attrs)
+            for i, source_obj in enumerate(source_objects):
+                target_obj = target_objects[i]
+                if connection_attrs:
+                    self.connect_attrs(source_obj, target_obj, connection_attrs)
+                if custom_attrs:
+                    self.connect_attrs(source_obj, target_obj, custom_attrs)
 
         # match by name
         else:
@@ -834,7 +871,10 @@ class RiggingUtilityTool(QMainWindow):
                     cmds.warning("{} does not exist.".format(target_obj))
                     continue
 
-                self.connect_attrs(source_obj, target_obj, connection_attrs)
+                if connection_attrs:
+                    self.connect_attrs(source_obj, target_obj, connection_attrs)
+                if custom_attrs:
+                    self.connect_attrs(source_obj, target_obj, custom_attrs)
 
     def copy_skin_wts_mesh(self, source_obj, target_obj, association_type, influenceAssociation_list):
         source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
