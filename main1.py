@@ -308,7 +308,7 @@ class RiggingUtilityTool(QMainWindow):
 
         constraint_main_layout.addLayout(constraint_type_layout) 
         constraint_main_layout.addLayout(maintain_offset_layout)
-        divider_offsets = self.create_divider_for_ui(QFrame.HLine)
+        divider_offsets = self.create_divider_for_ui()
         constraint_main_layout.addWidget(divider_offsets)
 
         self.first_tab.setLayout(constraint_main_layout)  
@@ -354,7 +354,7 @@ class RiggingUtilityTool(QMainWindow):
         
         constraint_axes_group.setLayout(constraint_options_layout)
         constraint_main_layout.addWidget(constraint_axes_group)
-        divider_offsets = self.create_divider_for_ui(QFrame.HLine)
+        divider_offsets = self.create_divider_for_ui()
         constraint_main_layout.addWidget(divider_offsets)
 
         # Constraint Button creation 
@@ -387,7 +387,7 @@ class RiggingUtilityTool(QMainWindow):
 
         # addLAyouts in main_layout
         self.main_layout.addLayout(self.objects_grid_layout)    
-        divider_main = self.create_divider_for_ui(QFrame.HLine)
+        divider_main = self.create_divider_for_ui()
         self.main_layout.addWidget(divider_main)
         self.main_layout.addLayout(self.match_group)  
         self.main_layout.addWidget(self.main_tab_widget)
@@ -443,39 +443,28 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_options_layout.addWidget(self.scale_z_checkbox_connection, 2, 4)
 
         # All connection Atrributes List 
-        self.driver_driven_layout = QGridLayout()
-        self.all_driver_label = QLabel("Driver Attribute")
-        self.driver_combobox = QComboBox()
-        self.all_drivers_listwidget = QListWidget()
-        self.all_driven_label = QLabel("Driven Attribute")
-        self.driven_combobox = QComboBox()
-        self.all_driven_listwidget = QListWidget()
-        
-        self.driver_combobox.addItem("Default")
-        self.driver_combobox.addItem("Custom")
-        self.driver_combobox.addItem("Translate")
-        self.driver_combobox.addItem("All")
+        self.grid_attributes_layout = QGridLayout()
+        self.all_connection_label = QLabel("All Connections Attributes")
+        self.all_connection_listwidget = QListWidget()
+        self.selected_attributes_label = QLabel("Selected Attributes")
+        self.selected_attributes_listwidget = QListWidget()
 
-        self.driven_combobox.addItem("Default")
-        self.driven_combobox.addItem("Custom")
-        self.driven_combobox.addItem("Translate")
-        self.driven_combobox.addItem("All")
+        self.add_attributes_button = QPushButton()
+        self.add_attributes_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
+        self.add_attributes_button.setFixedSize(40, 30)
+        self.remove_item_button = QPushButton("Remove Item")
+        self.clear_attributes_button = QPushButton("Clear")
 
-        # self.add_attributes_button = QPushButton()
-        # self.add_attributes_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
-        # self.add_attributes_button.setFixedSize(40, 30)
-        # self.remove_item_button = QPushButton("Remove Item")
-        # self.clear_attributes_button = QPushButton("Clear")
+        self.grid_attributes_layout.addWidget(self.all_connection_label, 0, 0)
+        self.grid_attributes_layout.addWidget(self.selected_attributes_label, 0, 2)
+        self.grid_attributes_layout.addWidget(self.all_connection_listwidget, 1, 0, 3, 1)
+        self.grid_attributes_layout.addWidget(self.add_attributes_button, 1, 1, alignment=Qt.AlignCenter)
+        self.grid_attributes_layout.addWidget(self.selected_attributes_listwidget, 1, 2)
 
-        self.driver_driven_layout.addWidget(self.all_driver_label, 0, 0)
-        self.driver_driven_layout.addWidget(self.all_driven_label, 0, 2)
-        self.driver_driven_layout.addWidget(self.driver_combobox, 1, 0)
-        self.driver_driven_layout.addWidget(self.driven_combobox, 1, 2)
-        divider_connection = self.create_divider_for_ui(QFrame.VLine)
-        self.driver_driven_layout.addWidget(divider_connection, 0, 1, 3, 1)
-        self.driver_driven_layout.addWidget(self.all_drivers_listwidget, 2, 0)
-        self.driver_driven_layout.addWidget(self.all_driven_listwidget, 2, 2)
-        
+        selected_buttons_layout = QHBoxLayout()
+        selected_buttons_layout.addWidget(self.remove_item_button)
+        selected_buttons_layout.addWidget(self.clear_attributes_button)
+        self.grid_attributes_layout.addLayout(selected_buttons_layout, 2, 2)
 
         self.translate_all_checkbox_connection.setChecked(True)
         self.rotate_all_checkbox_connection.setChecked(True)
@@ -502,11 +491,11 @@ class RiggingUtilityTool(QMainWindow):
 
         connection_tab_layout.addWidget(self.connection_axes_group)
 
-        divider_connection = self.create_divider_for_ui(QFrame.HLine)
+        divider_connection = self.create_divider_for_ui()
         connection_tab_layout.addWidget(divider_connection)
-        connection_tab_layout.addLayout(self.driver_driven_layout)
+        connection_tab_layout.addLayout(self.grid_attributes_layout)
         
-        divider_connection = self.create_divider_for_ui(QFrame.HLine)
+        divider_connection = self.create_divider_for_ui()
         connection_tab_layout.addWidget(divider_connection)
         self.connection_button_layout.addWidget(self.create_connection_button)
         connection_tab_layout.addLayout(self.connection_button_layout)
@@ -524,43 +513,8 @@ class RiggingUtilityTool(QMainWindow):
         self.create_connection_button.clicked.connect(self.create_connections)
 
         # signals For Populating cutom attributes 
-        # self.source_obj_list.itemSelectionChanged.connect(
-        #     lambda: self.populate_custom_attributes(self.source_obj_list, self.all_drivers_listwidget)
-        # )
-        # self.target_obj_list.itemSelectionChanged.connect(
-        #     lambda: self.populate_custom_attributes(self.target_obj_list, self.all_driven_listwidget)
-        # )
-
-        self.source_obj_list.itemSelectionChanged.connect(
-            lambda: self.update_list(
-                self.source_obj_list,
-                self.all_drivers_listwidget,
-                self.driver_combobox.currentText(),
-            )
-        )
-        self.driver_combobox.currentTextChanged.connect(
-            lambda: self.update_list(
-                self.source_obj_list,
-                self.all_drivers_listwidget,
-                self.driver_combobox.currentText(),
-            )
-        )
-
-        self.target_obj_list.itemSelectionChanged.connect(
-            lambda: self.update_list(
-                self.target_obj_list,
-                self.all_driven_listwidget,
-                self.driven_combobox.currentText(),
-            )
-        )
-        self.driven_combobox.currentTextChanged.connect(
-            lambda: self.update_list(
-                self.target_obj_list,
-                self.all_driven_listwidget,
-                self.driven_combobox.currentText(),
-            )
-        )
-        # self.add_attributes_button.clicked.connect(self.add_custom_attributes_selected)
+        self.source_obj_list.itemSelectionChanged.connect(self.populate_custom_attributes)
+        self.add_attributes_button.clicked.connect(self.add_custom_attributes_selected)
     
     def copyskin_tab_ui(self):
 
@@ -614,7 +568,7 @@ class RiggingUtilityTool(QMainWindow):
 
         copy_skin_group.setLayout(self.copyskin_form_layout)
         copyskin_tab_layout.addWidget(copy_skin_group)
-        divider_copyskin = self.create_divider_for_ui(QFrame.HLine)
+        divider_copyskin = self.create_divider_for_ui()
         copyskin_tab_layout.addWidget(divider_copyskin)
         copyskin_tab_layout.addLayout(self.copyskin_button_layout)
         self.third_tab.setLayout(copyskin_tab_layout)
@@ -622,90 +576,36 @@ class RiggingUtilityTool(QMainWindow):
         # signals for copy Skin button 
         self.copy_skin_btn.clicked.connect(self.copy_skins)
     
-    def create_divider_for_ui(self, linetype):
+    def create_divider_for_ui(self):
         divider = QFrame()
-        divider.setFrameShape(linetype)
+        divider.setFrameShape(QFrame.HLine)
         divider.setFrameShadow(QFrame.Sunken)
         return divider
 
     @Slot()
     def add_custom_attributes_selected(self):
-        selected_item = self.all_drivers_listwidget.currentItem()
+        selected_item = self.all_connection_listwidget.currentItem()
         if not selected_item:
             self.status_bar.showMessage("Error: No attribute selected to add.")
             return
 
         attribute_name = selected_item.text()
-        self.all_driven_listwidget.addItem(attribute_name)
+        self.selected_attributes_listwidget.addItem(attribute_name)
         self.status_bar.showMessage(f"Added attribute '{attribute_name}' to selected list.")
 
     @Slot()
-    def populate_custom_attributes(self, list_widget, target_list_widget):
-        target_list_widget.clear()
+    def populate_custom_attributes(self):
+        self.all_connection_listwidget.clear()
+        current_object_selected = self.source_obj_list.currentItem()
 
-        current_object_selected = list_widget.currentItem()
-        if not current_object_selected:
-            return
-
-        current_object_name = current_object_selected.text()
-        print(current_object_name)
-
-        # driven_combobox_value = self.driver_combobox.currentText()
-        # print(driven_combobox_value)
-        custom_attributes = cmds.listAttr(current_object_name, userDefined=True) or []
-        for attribute in custom_attributes:
-            target_list_widget.addItem(attribute)
-            
-    @Slot()
-    def update_list(self, list_widget, target_list_widget, driver_driven_combobox_value):
-        current_object_selected = list_widget.currentItem()
         if not current_object_selected:
             return
         
-        target_list_widget.clear()
-
-        if driver_driven_combobox_value == "Translate":
-            items = self.get_translations(current_object_selected)
-        elif driver_driven_combobox_value == "Custom":
-            items = self.get_custom_items(current_object_selected)
-        elif driver_driven_combobox_value == "All":
-            items = self.get_all_items(current_object_selected)
-        else:
-            items = []
-        target_list_widget.addItems(items)
-
-    def get_translations(self, loaded_selected_item):
-        # Return all translated names
-        # print(list_widget.text())
-        current_object = loaded_selected_item.text()
-        custom_attributes = cmds.listAttr(current_object, keyable=True, unlocked=True)
-        # print(custom_attributes)
-
-        transform_attrs = {
-            "translateX", "translateY", "translateZ",
-            "rotateX", "rotateY", "rotateZ",
-            "scaleX", "scaleY", "scaleZ",
-            "visibility"
-        }
-        attributes = []
-        for attr in custom_attributes:
-            if attr in transform_attrs:
-                # print(attr)
-                attributes.append(attr)
-
-        return attributes
-
-    def get_custom_items(self, loaded_selected_item):
-        # Return user-defined items
-        current_object = loaded_selected_item.text()
-        custom_attributes = cmds.listAttr(current_object, userDefined=True) or []
-        return custom_attributes
-    
-    def get_all_items(self, loaded_selected_item):
-        # Return all items
-        current_object = loaded_selected_item.text()
-        custom_attributes = cmds.listAttr(current_object, keyable=True)
-        return custom_attributes
+        current_source_object_selected = current_object_selected.text()
+        # print(current_source_object_selected)
+        custom_attributes = cmds.listAttr(current_source_object_selected, userDefined=True) or []
+        for attribute in custom_attributes:
+            self.all_connection_listwidget.addItem(attribute)
 
     @Slot()
     def load_selected_objects(self, list_widget_object):
@@ -931,8 +831,8 @@ class RiggingUtilityTool(QMainWindow):
     def get_selected_custom_attributes(self):
         selected_attributes = []
 
-        for i in range(self.all_driven_listwidget.count()):
-            item = self.all_driven_listwidget.item(i)
+        for i in range(self.selected_attributes_listwidget.count()):
+            item = self.selected_attributes_listwidget.item(i)
             if item:
                 attribute_name = item.text().strip()
                 if attribute_name:
