@@ -101,6 +101,45 @@ class RiggingUtilityTool(QMainWindow):
             }
         """)
 
+    def set_status_message(self, message):
+        
+        self.status_bar.showMessage(message, timeout=3000)
+        self.status_bar.setStyleSheet("""
+            QStatusBar{
+                background: #007FFF;
+                border: 1px solid grey;
+                color: black;
+                font-size: 10px;
+                font-style: italic;
+                border-radius: 2px;
+            }
+        """)
+        if "ERROR" not in message:
+            self.status_bar.setStyleSheet("""
+                QStatusBar{
+                    background: #007FFF;
+                    border: 1px solid grey;
+                    color: black;
+                    font-size: 10px;
+                    font-style: italic;
+                    border-radius: 2px;
+                }
+            """)
+        else:
+            self.status_bar.setStyleSheet("""
+                QStatusBar{
+                    background: red;
+                    border: 1px solid grey;
+                    color: black;
+                    font-size: 10px;
+                    font-style: italic;
+                    border-radius: 2px;
+                }
+            """)
+
+        print(message)
+        
+
     def primary_button(self, text):
 
         new_push_button = QPushButton(text)
@@ -272,8 +311,8 @@ class RiggingUtilityTool(QMainWindow):
         # self.constraint_tab_ui()
         # Status bar  
         self.status_bar = QStatusBar()
-        self.status_bar.showMessage("Ready")
         self.setStatusBar(self.status_bar)
+        self.set_status_message("Ready")
 
     def constraint_tab_ui(self):
         # Creating Constraint tab 
@@ -632,12 +671,12 @@ class RiggingUtilityTool(QMainWindow):
     def add_custom_attributes_selected(self):
         selected_item = self.all_drivers_listwidget.currentItem()
         if not selected_item:
-            self.status_bar.showMessage("Error: No attribute selected to add.")
+            self.set_status_message("ERROR: No attribute selected to add.")
             return
 
         attribute_name = selected_item.text()
         self.all_driven_listwidget.addItem(attribute_name)
-        self.status_bar.showMessage(f"Added attribute '{attribute_name}' to selected list.")
+        self.set_status_message(f"Added attribute '{attribute_name}' to selected list.")
 
     @Slot()
     def populate_custom_attributes(self, list_widget, target_list_widget):
@@ -713,14 +752,14 @@ class RiggingUtilityTool(QMainWindow):
         selected_objects = cmds.ls(selection=True) or []
         if not selected_objects:
             cmds.warning("No objects selected in Maya.")
-            self.status_bar.showMessage("Error: No objects selected in Maya.")
+            self.set_status_message("ERROR: No objects selected in Maya.")
             return
 
         # adding sleected objects 
         for obj in selected_objects:     
             list_widget_object.addItem(obj)
         print(f"Added Selected Objects in object ListBox ")
-        self.status_bar.showMessage("Added selected objects to the list.")
+        self.set_status_message("Added selected objects to the list.")
 
     @Slot()
     def radio_buttondisable(self, checked):
@@ -744,7 +783,7 @@ class RiggingUtilityTool(QMainWindow):
     def clear_list(self, list_widget_object):
         list_widget_object.clear()
         print(f"List Box Cleared")
-        self.status_bar.showMessage("List box cleared.")
+        self.set_status_message("List box cleared.")
 
     @Slot()
     def move_selected_item_up(self, list_widget_object):
@@ -756,7 +795,7 @@ class RiggingUtilityTool(QMainWindow):
         # print(item.text())
         list_widget_object.insertItem(row - 1, item)
         list_widget_object.setCurrentRow(row - 1)
-        self.status_bar.showMessage("Selected Object Moved Up.")
+        self.set_status_message("Selected Object Moved Up.")
 
     @Slot()
     def move_selected_item_down(self, list_widget_object):
@@ -767,7 +806,7 @@ class RiggingUtilityTool(QMainWindow):
         item = list_widget_object.takeItem(row)
         list_widget_object.insertItem(row + 1, item)
         list_widget_object.setCurrentRow(row + 1)
-        self.status_bar.showMessage("Selected Object Moved Down.")
+        self.set_status_message("Selected Object Moved Down.")
 
     @Slot()
     def enable_disable_translate_constraints(self, checked):
@@ -851,11 +890,11 @@ class RiggingUtilityTool(QMainWindow):
 
             if not source_objects or not target_objects:
                 print("Source and Target object lists need to be populated.")
-                self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
+                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
 
                 if self.radio_button_order.isChecked() and len(source_objects) != len(target_objects):
                     cmds.warning("Source and Target lists must contain the same number of objects.")
-                    self.status_bar.showMessage("Error: Source and Target lists must contain the same number of objects.")
+                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                     return
 
             for i in range(len(source_objects)):
@@ -873,7 +912,7 @@ class RiggingUtilityTool(QMainWindow):
             # Only the source list is Checked if it is filled
             if not source_objects:
                 cmds.warning("Source object list needs to be populated.")
-                self.status_bar.showMessage("Error: Source object list needs to be populated.")
+                self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
             
             suffix = self.suffix_lineedit.text().strip()
@@ -897,7 +936,7 @@ class RiggingUtilityTool(QMainWindow):
                     cmds.scaleConstraint(obj, target_name, mo=offset_type, skip=skip_scale)  
 
 
-        self.status_bar.showMessage(f"Constraints completed")
+        self.set_status_message("Constraints completed")
             # print(target_dict)
             
     def connect_attrs(self, source_obj, target_obj, connection_attrs):
@@ -986,19 +1025,19 @@ class RiggingUtilityTool(QMainWindow):
 
         if not connection_attrs and not custom_attrs:
             cmds.warning("No translate/rotate/scale channels or custom attributes selected to connect.")
-            self.status_bar.showMessage("Error: No channels or custom attributes selected to connect.")
+            self.set_status_message("ERROR: No channels or custom attributes selected to connect.")
             return
 
         # match by order
         if self.radio_button_order.isChecked():
             if not source_objects or not target_objects:
                 print("Source and Target object lists need to be populated.")
-                self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
+                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
                 return
 
             if len(source_objects) != len(target_objects):
                 cmds.warning("Source and Target lists must contain the same number of objects.")
-                self.status_bar.showMessage("Error: Source and Target lists must contain the same number of objects.")
+                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                 return
 
             for i, source_obj in enumerate(source_objects):
@@ -1012,7 +1051,7 @@ class RiggingUtilityTool(QMainWindow):
         else:
             if not source_objects:
                 cmds.warning("Source object list needs to be populated.")
-                self.status_bar.showMessage("Error: Source object list needs to be populated.")
+                self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
 
             suffix = self.suffix_lineedit.text().strip()
@@ -1029,7 +1068,7 @@ class RiggingUtilityTool(QMainWindow):
                 if custom_attrs:
                     self.connect_attrs(source_obj, target_obj, custom_attrs)
 
-        self.status_bar.showMessage(f"Connections done.")
+        self.set_status_message("Connections done.")
 
     def copy_skin_wts_mesh(self, source_obj, target_obj, association_type, influenceAssociation_list):
         source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
@@ -1058,7 +1097,7 @@ class RiggingUtilityTool(QMainWindow):
             influenceAssociation=influenceAssociation_list,
         )
         print("Copied {} -> {}".format(source_obj, target_obj))
-        self.status_bar.showMessage(f"Copied Skin weights done.")
+        self.set_status_message("Copied Skin weights done.")
 
     @Slot()
     def copy_skins(self):
@@ -1094,12 +1133,12 @@ class RiggingUtilityTool(QMainWindow):
         if self.radio_button_order.isChecked():
             if not source_objects and target_objects:
                 print("Source and Target object lists need to be populated.")
-                self.status_bar.showMessage("Error: Source and Target object lists need to be populated.")
+                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
                 return
 
             if len(source_objects) != len(target_objects):
                 cmds.warning("Source and Target lists must contain the same number of objects.")
-                self.status_bar.showMessage("Error: Source and Target lists must contain the same number of objects.")
+                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                 return
 
             for i in range(len(source_objects)):
@@ -1110,7 +1149,7 @@ class RiggingUtilityTool(QMainWindow):
         else:
             if not source_objects:
                 cmds.warning("Source object list needs to be populated.")
-                self.status_bar.showMessage("Error: Source object list needs to be populated.")
+                self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
 
             suffix = self.suffix_lineedit.text().strip()
@@ -1162,6 +1201,7 @@ class RiggingUtilityTool(QMainWindow):
         for i in range(list_widget_object.count()):
             items.append(list_widget_object.item(i).text())
         return items
+
 
 def show_window():
     global my_window
