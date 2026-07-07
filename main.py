@@ -139,7 +139,6 @@ class RiggingUtilityTool(QMainWindow):
 
         print(message)
         
-
     def primary_button(self, text):
 
         new_push_button = QPushButton(text)
@@ -444,6 +443,8 @@ class RiggingUtilityTool(QMainWindow):
         connection_tab_layout = QVBoxLayout()
         # creation connection Axes Group 
         self.connection_axes_group = QGroupBox("Connection Axes ")
+        self.connection_axes_group.setCheckable(True)
+        self.connection_axes_group.setChecked(True)
         self.connection_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
         self.translate_all_checkbox_connection = QCheckBox("All")
@@ -482,6 +483,9 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_options_layout.addWidget(self.scale_z_checkbox_connection, 2, 4)
 
         # All connection Atrributes List 
+        self.driver_driven_group = QGroupBox("Driver / Driven Attributes")
+        self.driver_driven_group.setCheckable(True)
+        self.driver_driven_group.setChecked(False)
         self.driver_driven_layout = QGridLayout()
         self.all_driver_label = QLabel("Driver Attribute")
         self.driver_combobox = QComboBox()
@@ -543,7 +547,8 @@ class RiggingUtilityTool(QMainWindow):
 
         divider_connection = self.create_divider_for_ui(QFrame.HLine)
         connection_tab_layout.addWidget(divider_connection)
-        connection_tab_layout.addLayout(self.driver_driven_layout)
+        self.driver_driven_group.setLayout(self.driver_driven_layout)
+        connection_tab_layout.addWidget(self.driver_driven_group)
         
         divider_connection = self.create_divider_for_ui(QFrame.HLine)
         connection_tab_layout.addWidget(divider_connection)
@@ -599,7 +604,8 @@ class RiggingUtilityTool(QMainWindow):
                 self.driven_combobox.currentText(),
             )
         )
-        # self.add_attributes_button.clicked.connect(self.add_custom_attributes_selected)
+
+        
     
     def copyskin_tab_ui(self):
 
@@ -667,16 +673,38 @@ class RiggingUtilityTool(QMainWindow):
         divider.setFrameShadow(QFrame.Sunken)
         return divider
 
-    @Slot()
-    def add_custom_attributes_selected(self):
-        selected_item = self.all_drivers_listwidget.currentItem()
-        if not selected_item:
-            self.set_status_message("ERROR: No attribute selected to add.")
-            return
+    def get_translations(self, loaded_selected_item):
+        # Return all translated names
+        # print(list_widget.text())
+        current_object = loaded_selected_item.text()
+        custom_attributes = cmds.listAttr(current_object, keyable=True, unlocked=True)
+        # print(custom_attributes)
 
-        attribute_name = selected_item.text()
-        self.all_driven_listwidget.addItem(attribute_name)
-        self.set_status_message(f"Added attribute '{attribute_name}' to selected list.")
+        transform_attrs = {
+            "translateX", "translateY", "translateZ",
+            "rotateX", "rotateY", "rotateZ",
+            "scaleX", "scaleY", "scaleZ",
+            "visibility"
+        }
+        attributes = []
+        for attr in custom_attributes:
+            if attr in transform_attrs:
+                # print(attr)
+                attributes.append(attr)
+
+        return attributes
+
+    def get_custom_items(self, loaded_selected_item):
+        # Return user-defined items
+        current_object = loaded_selected_item.text()
+        custom_attributes = cmds.listAttr(current_object, userDefined=True) or []
+        return custom_attributes
+    
+    def get_all_items(self, loaded_selected_item):
+        # Return all items
+        current_object = loaded_selected_item.text()
+        custom_attributes = cmds.listAttr(current_object, keyable=True)
+        return custom_attributes
 
     @Slot()
     def populate_custom_attributes(self, list_widget, target_list_widget):
@@ -713,39 +741,6 @@ class RiggingUtilityTool(QMainWindow):
             items = []
         target_list_widget.addItems(items)
 
-    def get_translations(self, loaded_selected_item):
-        # Return all translated names
-        # print(list_widget.text())
-        current_object = loaded_selected_item.text()
-        custom_attributes = cmds.listAttr(current_object, keyable=True, unlocked=True)
-        # print(custom_attributes)
-
-        transform_attrs = {
-            "translateX", "translateY", "translateZ",
-            "rotateX", "rotateY", "rotateZ",
-            "scaleX", "scaleY", "scaleZ",
-            "visibility"
-        }
-        attributes = []
-        for attr in custom_attributes:
-            if attr in transform_attrs:
-                # print(attr)
-                attributes.append(attr)
-
-        return attributes
-
-    def get_custom_items(self, loaded_selected_item):
-        # Return user-defined items
-        current_object = loaded_selected_item.text()
-        custom_attributes = cmds.listAttr(current_object, userDefined=True) or []
-        return custom_attributes
-    
-    def get_all_items(self, loaded_selected_item):
-        # Return all items
-        current_object = loaded_selected_item.text()
-        custom_attributes = cmds.listAttr(current_object, keyable=True)
-        return custom_attributes
-
     @Slot()
     def load_selected_objects(self, list_widget_object):
     # Get selected objects in Maya
@@ -770,7 +765,8 @@ class RiggingUtilityTool(QMainWindow):
             self.target_move_up_btn.setEnabled(not checked)
             self.target_move_down_btn.setEnabled(not checked)
             self.suffix_lineedit.setEnabled(checked)
-            
+            self.all_driven_listwidget.clear()
+            self.set_status_message("Driven attribute list cleared.")
         else:
             self.target_obj_list.setEnabled(not checked)
             self.load_target_obj_button.setEnabled(not checked)
@@ -967,61 +963,102 @@ class RiggingUtilityTool(QMainWindow):
         if connected:
             print("Connected {} -> {}".format(source_obj, target_obj))
 
+    def connect_selected_custom_attribute(self, source_obj, target_obj, driver_attr, driven_attr):
+        if not cmds.objExists(source_obj):
+            cmds.warning("Source object {} does not exist.".format(source_obj))
+            return
+        if not cmds.objExists(target_obj):
+            cmds.warning("Target object {} does not exist.".format(target_obj))
+            return
+
+        source_attr = "{}.{}".format(source_obj, driver_attr)
+        target_attr = "{}.{}".format(target_obj, driven_attr)
+        if not cmds.objExists(source_attr):
+            cmds.warning("Attribute {} does not exist on {}.".format(driver_attr, source_obj))
+            return
+        if not cmds.objExists(target_attr):
+            cmds.warning("Attribute {} does not exist on {}.".format(driven_attr, target_obj))
+            return
+
+        cmds.connectAttr(source_attr, target_attr, force=True)
+        print("Connected {} -> {}".format(source_attr, target_attr))
+
     def get_selected_custom_attributes(self):
-        selected_attributes = []
+        source_item = self.source_obj_list.currentItem()
+        target_item = self.target_obj_list.currentItem()
+        driver_item = self.all_drivers_listwidget.currentItem()
+        driven_item = self.all_driven_listwidget.currentItem()
 
-        for i in range(self.all_driven_listwidget.count()):
-            item = self.all_driven_listwidget.item(i)
-            if item:
-                attribute_name = item.text().strip()
-                if attribute_name:
-                    selected_attributes.append(attribute_name)
+        if not source_item or not target_item or not driver_item or not driven_item:
+            return []
 
-        return selected_attributes
+        source_obj = source_item.text().strip()
+        target_obj = target_item.text().strip()
+        driver_attr = driver_item.text().strip()
+        driven_attr = driven_item.text().strip()
+
+        if not source_obj or not target_obj or not driver_attr or not driven_attr:
+            return []
+
+        selected_pairs = []
+        selected_pairs.append((source_obj, target_obj, driver_attr, driven_attr))
+        return selected_pairs
 
     @Slot()
     def create_connections(self):
         source_objects = self.get_items_from_list(self.source_obj_list)
         target_objects = self.get_items_from_list(self.target_obj_list)
 
-        translate_attrs = []
-        rotate_attrs = []
-        scale_attrs = []
-        if self.translate_all_checkbox_connection.isChecked():
-            translate_attrs = ["translateX", "translateY", "translateZ"]
-        else:
-            if self.translate_x_checkbox_connection.isChecked():
-                translate_attrs.append("translateX")
-            if self.translate_y_checkbox_connection.isChecked():
-                translate_attrs.append("translateY")
-            if self.translate_z_checkbox_connection.isChecked():
-                translate_attrs.append("translateZ")
+        if self.connection_axes_group.isChecked():
+            translate_attrs = []
+            rotate_attrs = []
+            scale_attrs = []
+            if self.translate_all_checkbox_connection.isChecked():
+                translate_attrs = ["translateX", "translateY", "translateZ"]
+            else:
+                if self.translate_x_checkbox_connection.isChecked():
+                    translate_attrs.append("translateX")
+                if self.translate_y_checkbox_connection.isChecked():
+                    translate_attrs.append("translateY")
+                if self.translate_z_checkbox_connection.isChecked():
+                    translate_attrs.append("translateZ")
 
-        if self.rotate_all_checkbox_connection.isChecked():
-            rotate_attrs = ["rotateX", "rotateY", "rotateZ"]
-        else:
-            if self.rotate_x_checkbox_connection.isChecked():
-                rotate_attrs.append("rotateX")
-            if self.rotate_y_checkbox_connection.isChecked():
-                rotate_attrs.append("rotateY")
-            if self.rotate_z_checkbox_connection.isChecked():
-                rotate_attrs.append("rotateZ")
+            if self.rotate_all_checkbox_connection.isChecked():
+                rotate_attrs = ["rotateX", "rotateY", "rotateZ"]
+            else:
+                if self.rotate_x_checkbox_connection.isChecked():
+                    rotate_attrs.append("rotateX")
+                if self.rotate_y_checkbox_connection.isChecked():
+                    rotate_attrs.append("rotateY")
+                if self.rotate_z_checkbox_connection.isChecked():
+                    rotate_attrs.append("rotateZ")
 
-        if self.scale_all_checkbox_connection.isChecked():
-            scale_attrs = ["scaleX", "scaleY", "scaleZ"]
-        else:
-            if self.scale_x_checkbox_connection.isChecked():
-                scale_attrs.append("scaleX")
-            if self.scale_y_checkbox_connection.isChecked():
-                scale_attrs.append("scaleY")
-            if self.scale_z_checkbox_connection.isChecked():
-                scale_attrs.append("scaleZ")
+            if self.scale_all_checkbox_connection.isChecked():
+                scale_attrs = ["scaleX", "scaleY", "scaleZ"]
+            else:
+                if self.scale_x_checkbox_connection.isChecked():
+                    scale_attrs.append("scaleX")
+                if self.scale_y_checkbox_connection.isChecked():
+                    scale_attrs.append("scaleY")
+                if self.scale_z_checkbox_connection.isChecked():
+                    scale_attrs.append("scaleZ")
 
-        connection_attrs = translate_attrs + rotate_attrs + scale_attrs
-        custom_attrs = []
-        for attr in self.get_selected_custom_attributes():
-            if attr not in connection_attrs:
-                custom_attrs.append(attr)
+            connection_attrs = translate_attrs + rotate_attrs + scale_attrs
+            custom_attrs = []
+        elif self.driver_driven_group.isChecked():
+            selected_pairs = self.get_selected_custom_attributes()
+            if not selected_pairs:
+                self.set_status_message("ERROR: Select driver and driven attributes.")
+                return
+
+            for source_obj, target_obj, driver_attr, driven_attr in selected_pairs:
+                self.connect_selected_custom_attribute(source_obj, target_obj, driver_attr, driven_attr)
+
+            self.set_status_message("Connections done.")
+            return
+        else:
+            self.set_status_message("ERROR: Select a connection section to run.")
+            return
 
         if not connection_attrs and not custom_attrs:
             cmds.warning("No translate/rotate/scale channels or custom attributes selected to connect.")
