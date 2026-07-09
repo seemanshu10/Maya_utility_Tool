@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout, 
                                QLabel, QListWidget, QHBoxLayout, QVBoxLayout, 
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
-                               QCheckBox, QFormLayout, QStyle, QLineEdit, QFrame)
+                               QCheckBox, QFormLayout, QStyle, QLineEdit, QFrame, QSizePolicy)
 
 from PySide2.QtCore import Qt, Slot
 
@@ -168,21 +168,22 @@ class RiggingUtilityTool(QMainWindow):
 
         # Add Labels to the Grid Layout 
         self.objects_grid_layout = QGridLayout()
-
         source_obj_label = QLabel("Source Objects")
         target_obj_label = QLabel("Target Objects")
         source_obj_label.setStyleSheet("""
             QLabel
                 {
-                font: 15px;
+                font: 13px;
                 color: white;
+                font-weight: bold;
             }""")
         
         target_obj_label.setStyleSheet("""
             QLabel
                 {
-                font: 15px;
+                font: 13px;
                 color: white;
+                font-weight: bold;
             }""")
 
         self.source_obj_list = QListWidget()
@@ -269,7 +270,6 @@ class RiggingUtilityTool(QMainWindow):
         target_list_row_layout.addLayout(target_button_column_layout)
         target_list_row_layout.addWidget(self.target_obj_list)
 
-
         target_column_layout = QVBoxLayout()
         target_column_layout.addWidget(target_obj_label, alignment=Qt.AlignCenter)
         target_column_layout.addLayout(target_list_row_layout)
@@ -282,15 +282,19 @@ class RiggingUtilityTool(QMainWindow):
 
         self.objects_grid_layout.addLayout(target_column_layout, 0, 2)
 
+        self.match_group_offset = QGroupBox()
+        self.match_group_offset.setToolTip("Match by Order: Will Use Relationship on one to one \nMatch by Name: Will Use source objects and suffix to find the target objects ")
+        # self.match_group_offset.setSizePolicy
+        # self.match_group_offset.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         # creating Relationship by order 
         self.match_group = QHBoxLayout()
 
         # Reduce the space around the layout
-        self.match_group.setContentsMargins(150, 0, 0, 0)
+        self.match_group.setContentsMargins(100, 0, 0, 0)
 
         # Reduce the space between widgets
-        self.match_group.setSpacing(10)     
-
+        self.match_group.setSpacing(10)
+        
         relationship_label = QLabel("Match by:")
 
         self.radio_button_order = QRadioButton("Order")
@@ -300,19 +304,20 @@ class RiggingUtilityTool(QMainWindow):
         # Suffix text box
         self.suffix_lineedit = QLineEdit()
         self.suffix_lineedit.setPlaceholderText("Target suffix (e.g. _bind)")
-        self.suffix_lineedit.setFixedWidth(250)
+        # self.suffix_lineedit.setFixedWidth(250)
         self.suffix_lineedit.setEnabled(False)
 
         self.match_group.addWidget(relationship_label)
         self.match_group.addWidget(self.radio_button_order)
         self.match_group.addWidget(self.radio_button_name)
         self.match_group.addWidget(self.suffix_lineedit)
+        self.match_group_offset.setLayout(self.match_group)
 
         # connections matchby name 
         self.radio_button_name.toggled.connect(self.radio_buttondisable)
 
         # Push everything to the left instead of spreading out
-        self.match_group.addStretch()
+        # self.match_group.addStretch()
 
         # creating TabWidget 
         self.main_tab_widget = QTabWidget()
@@ -329,7 +334,14 @@ class RiggingUtilityTool(QMainWindow):
         self.second_tab.setToolTip("Connection Tab")
         self.third_tab.setToolTip("CopySkin Tab")
 
-        # self.constraint_tab_ui()
+        # addLAyouts in main_layout
+        self.main_layout.addLayout(self.objects_grid_layout)    
+        divider_main = self.create_divider_for_ui(QFrame.HLine)
+        self.main_layout.addWidget(divider_main)
+        self.main_layout.addWidget(self.match_group_offset)  
+        self.main_layout.addWidget(self.main_tab_widget)
+        
+        self.central_widget.setLayout(self.main_layout)
         # Status bar  
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
@@ -359,16 +371,16 @@ class RiggingUtilityTool(QMainWindow):
         self.offset_radio_off = QRadioButton("Off")
         self.offset_radio_off.setChecked(True)
         self.offset_radio_on.setToolTip("Maintain Offset off and on ")
+        maintain_offset_layout.setContentsMargins(80, 0, 0, 0)
     
-        maintain_offset_layout.addWidget(maintain_offset, alignment=Qt.AlignRight)
-        maintain_offset_layout.addWidget(self.offset_radio_on, alignment=Qt.AlignLeft)
-        maintain_offset_layout.addWidget(self.offset_radio_off, alignment=Qt.AlignLeft)
-        maintain_offset_layout.setSpacing(12)
+        maintain_offset_layout.addWidget(maintain_offset)
+        maintain_offset_layout.addWidget(self.offset_radio_on)
+        maintain_offset_layout.addWidget(self.offset_radio_off)
+        maintain_offset_layout.setSpacing(0)
 
         # constraint adding everything to main Tab widget 
-
         constraint_main_layout.addLayout(constraint_type_layout) 
-        constraint_main_layout.addLayout(maintain_offset_layout)
+        constraint_main_layout.addLayout(maintain_offset_layout, alignment=Qt.AlignCenter)
         divider_offsets = self.create_divider_for_ui(QFrame.HLine)
         constraint_main_layout.addWidget(divider_offsets)
 
@@ -376,13 +388,13 @@ class RiggingUtilityTool(QMainWindow):
 
         # creation constraint Axes Group 
         constraint_axes_group = QGroupBox("Constraint Axes ")
-
         constraint_axes_group.setStyleSheet("""
-            QLabel
+            QGroupBox
                 {
-                font: 15px;
+                font: 12px;
                 color: white;
             }""")
+        
         constraint_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
         self.translate_all_checkbox_constraint = QCheckBox("All")
@@ -402,6 +414,9 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_y_checkbox_constraint = QCheckBox("Y")
         self.scale_z_checkbox_constraint = QCheckBox("Z")
 
+        # Reset button 
+        self.reset_constraint = self.primary_button("Reset")
+
         constraint_options_layout.addWidget(translate_label, 0, 0, alignment=Qt.AlignRight)
         constraint_options_layout.addWidget(self.translate_all_checkbox_constraint, 0, 1)
         constraint_options_layout.addWidget(self.translate_x_checkbox_constraint, 0, 2)
@@ -419,6 +434,8 @@ class RiggingUtilityTool(QMainWindow):
         constraint_options_layout.addWidget(self.scale_x_checkbox_constraint, 2, 2)
         constraint_options_layout.addWidget(self.scale_y_checkbox_constraint, 2, 3)
         constraint_options_layout.addWidget(self.scale_z_checkbox_constraint, 2, 4)
+        constraint_options_layout.addWidget(self.reset_constraint, 2, 5)
+        self.reset_constraint.setFixedSize(50, 30)
         
         constraint_axes_group.setLayout(constraint_options_layout)
         constraint_main_layout.addWidget(constraint_axes_group)
@@ -453,14 +470,7 @@ class RiggingUtilityTool(QMainWindow):
             self.scale_y_checkbox_constraint.setEnabled(False)
             self.scale_z_checkbox_constraint.setEnabled(False)
 
-        # addLAyouts in main_layout
-        self.main_layout.addLayout(self.objects_grid_layout)    
-        divider_main = self.create_divider_for_ui(QFrame.HLine)
-        self.main_layout.addWidget(divider_main)
-        self.main_layout.addLayout(self.match_group)  
-        self.main_layout.addWidget(self.main_tab_widget)
         
-        self.central_widget.setLayout(self.main_layout)
 
         # signals for constraints 
         self.create_constraint_btn.clicked.connect(self.create_constraints)
@@ -494,6 +504,9 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_y_checkbox_connection = QCheckBox("Y")
         self.scale_z_checkbox_connection = QCheckBox("Z")
 
+        # Reset button 
+        self.reset_connection_axes = self.primary_button("Reset")
+
         self.connection_options_layout.addWidget(translate_label, 0, 0, alignment=Qt.AlignRight)
         self.connection_options_layout.addWidget(self.translate_all_checkbox_connection, 0, 1)
         self.connection_options_layout.addWidget(self.translate_x_checkbox_connection, 0, 2)
@@ -511,6 +524,8 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_options_layout.addWidget(self.scale_x_checkbox_connection, 2, 2)
         self.connection_options_layout.addWidget(self.scale_y_checkbox_connection, 2, 3)
         self.connection_options_layout.addWidget(self.scale_z_checkbox_connection, 2, 4)
+        self.connection_options_layout.addWidget(self.reset_connection_axes, 2, 5)
+        self.reset_connection_axes.setFixedSize(80, 13)
 
         # All connection Atrributes List 
         self.driver_driven_group = QGroupBox("Driver / Driven Attributes")
@@ -971,7 +986,6 @@ class RiggingUtilityTool(QMainWindow):
             cmds.warning("Target object {} does not exist.".format(target_obj))
             return
 
-        connected = False
         for attr in connection_attrs:
             attr = attr.strip()
             if not attr:
@@ -988,8 +1002,7 @@ class RiggingUtilityTool(QMainWindow):
             cmds.connectAttr(source_attr, target_attr, force=True)
             connected = True
 
-        if connected:
-            print("Connected {} -> {}".format(source_obj, target_obj))
+        print("Connected {} -> {}".format(source_obj, target_obj))
 
     def connect_selected_custom_attribute(self, source_obj, target_obj, driver_attr, driven_attr):
         if not cmds.objExists(source_obj):
