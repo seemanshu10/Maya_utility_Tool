@@ -32,7 +32,7 @@ class RiggingUtilityTool(QMainWindow):
         self.constraint_tab_ui()
         self.connection_tab_ui()
         self.copyskin_tab_ui()
-        self.apply_theme()
+        # self.apply_theme()
 
     def apply_theme(self):
         self.setStyleSheet("""
@@ -104,38 +104,39 @@ class RiggingUtilityTool(QMainWindow):
     def set_status_message(self, message):
         
         self.status_bar.showMessage(message, timeout=3000)
-        self.status_bar.setStyleSheet("""
-            QStatusBar{
-                background: #007FFF;
-                border: 1px solid grey;
-                color: black;
-                font-size: 10px;
-                font-style: italic;
-                border-radius: 2px;
-            }
-        """)
-        if "ERROR" not in message:
-            self.status_bar.setStyleSheet("""
-                QStatusBar{
-                    background: #007FFF;
-                    border: 1px solid grey;
-                    color: black;
-                    font-size: 10px;
-                    font-style: italic;
-                    border-radius: 2px;
-                }
-            """)
-        else:
-            self.status_bar.setStyleSheet("""
-                QStatusBar{
-                    background: red;
-                    border: 1px solid grey;
-                    color: black;
-                    font-size: 10px;
-                    font-style: italic;
-                    border-radius: 2px;
-                }
-            """)
+        
+        # self.status_bar.setStyleSheet("""
+        #     QStatusBar{
+        #         background: #007FFF;
+        #         border: 1px solid grey;
+        #         color: black;
+        #         font-size: 10px;
+        #         font-style: italic;
+        #         border-radius: 2px;
+        #     }
+        # """)
+        # if "ERROR" not in message:
+        #     self.status_bar.setStyleSheet("""
+        #         QStatusBar{
+        #             background: #007FFF;
+        #             border: 1px solid grey;
+        #             color: black;
+        #             font-size: 10px;
+        #             font-style: italic;
+        #             border-radius: 2px;
+        #         }
+        #     """)
+        # else:
+        #     self.status_bar.setStyleSheet("""
+        #         QStatusBar{
+        #             background: red;
+        #             border: 1px solid grey;
+        #             color: black;
+        #             font-size: 10px;
+        #             font-style: italic;
+        #             border-radius: 2px;
+        #         }
+        #     """)
 
         print(message)
         
@@ -143,23 +144,23 @@ class RiggingUtilityTool(QMainWindow):
 
         new_push_button = QPushButton(text)
         new_push_button.setFixedSize(300, 40)
-        new_push_button.setStyleSheet("""
-            QPushButton{
-                background:#2E8BFF;
-                color:white;
-                border-radius:8px;
-                font-weight:bold;
-                font-size:11pt;
-            }
+        # new_push_button.setStyleSheet("""
+        #     QPushButton{
+        #         background:#2E8BFF;
+        #         color:white;
+        #         border-radius:8px;
+        #         font-weight:bold;
+        #         font-size:11pt;
+        #     }
 
-            QPushButton:hover{
-                background:#5CA7FF;
-            }
+        #     QPushButton:hover{
+        #         background:#5CA7FF;
+        #     }
 
-            QPushButton:pressed{
-                background:#1C6FD9;
-            }
-        """)
+        #     QPushButton:pressed{
+        #         background:#1C6FD9;
+        #     }
+        # """)
 
         return new_push_button
 
@@ -170,6 +171,19 @@ class RiggingUtilityTool(QMainWindow):
 
         source_obj_label = QLabel("Source Objects")
         target_obj_label = QLabel("Target Objects")
+        source_obj_label.setStyleSheet("""
+            QLabel
+                {
+                font: 15px;
+                color: white;
+            }""")
+        
+        target_obj_label.setStyleSheet("""
+            QLabel
+                {
+                font: 15px;
+                color: white;
+            }""")
 
         self.source_obj_list = QListWidget()
         self.source_obj_list.setMinimumHeight(200)
@@ -207,13 +221,15 @@ class RiggingUtilityTool(QMainWindow):
         source_buttons_layout.addWidget(self.clear_list_source_button)
 
         source_list_row_layout = QHBoxLayout()
-        source_list_row_layout.addWidget(self.source_obj_list)
-
+        
         source_button_column_layout = QVBoxLayout()
+        source_button_column_layout.setSpacing(4)
+        source_button_column_layout.setAlignment(Qt.AlignCenter)
         source_button_column_layout.addWidget(self.source_move_up_btn)
         source_button_column_layout.addWidget(self.source_move_down_btn)
         source_list_row_layout.addLayout(source_button_column_layout)
-
+        source_list_row_layout.addWidget(self.source_obj_list)
+        
         source_column_layout = QVBoxLayout()
         source_column_layout.addWidget(source_obj_label, alignment=Qt.AlignCenter)
         source_column_layout.addLayout(source_list_row_layout)
@@ -244,12 +260,15 @@ class RiggingUtilityTool(QMainWindow):
         target_buttons_layout.addWidget(self.clear_list_target_button)
 
         target_list_row_layout = QHBoxLayout()
-        target_list_row_layout.addWidget(self.target_obj_list)
 
         target_button_column_layout = QVBoxLayout()
+        target_button_column_layout.setSpacing(4)
+        target_button_column_layout.setAlignment(Qt.AlignCenter)
         target_button_column_layout.addWidget(self.target_move_up_btn)
         target_button_column_layout.addWidget(self.target_move_down_btn)
         target_list_row_layout.addLayout(target_button_column_layout)
+        target_list_row_layout.addWidget(self.target_obj_list)
+
 
         target_column_layout = QVBoxLayout()
         target_column_layout.addWidget(target_obj_label, alignment=Qt.AlignCenter)
@@ -258,7 +277,10 @@ class RiggingUtilityTool(QMainWindow):
 
         # Adding Both Source and target layout in Grid Layout  
         self.objects_grid_layout.addLayout(source_column_layout, 0, 0)
-        self.objects_grid_layout.addLayout(target_column_layout, 0, 1)
+        source_divider = self.create_divider_for_ui(QFrame.VLine)
+        self.objects_grid_layout.addWidget(source_divider, 0, 1)
+
+        self.objects_grid_layout.addLayout(target_column_layout, 0, 2)
 
         # creating Relationship by order 
         self.match_group = QHBoxLayout()
@@ -341,6 +363,7 @@ class RiggingUtilityTool(QMainWindow):
         maintain_offset_layout.addWidget(maintain_offset, alignment=Qt.AlignRight)
         maintain_offset_layout.addWidget(self.offset_radio_on, alignment=Qt.AlignLeft)
         maintain_offset_layout.addWidget(self.offset_radio_off, alignment=Qt.AlignLeft)
+        maintain_offset_layout.setSpacing(12)
 
         # constraint adding everything to main Tab widget 
 
@@ -353,6 +376,13 @@ class RiggingUtilityTool(QMainWindow):
 
         # creation constraint Axes Group 
         constraint_axes_group = QGroupBox("Constraint Axes ")
+
+        constraint_axes_group.setStyleSheet("""
+            QLabel
+                {
+                font: 15px;
+                color: white;
+            }""")
         constraint_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
         self.translate_all_checkbox_constraint = QCheckBox("All")
@@ -605,8 +635,6 @@ class RiggingUtilityTool(QMainWindow):
             )
         )
 
-        
-    
     def copyskin_tab_ui(self):
 
         # create The copy skin llayout 
@@ -695,7 +723,7 @@ class RiggingUtilityTool(QMainWindow):
         return attributes
 
     def get_custom_items(self, loaded_selected_item):
-        # Return user-defined items
+        # Return user-defined items which is manually created 
         current_object = loaded_selected_item.text()
         custom_attributes = cmds.listAttr(current_object, userDefined=True) or []
         return custom_attributes
@@ -1107,11 +1135,26 @@ class RiggingUtilityTool(QMainWindow):
 
         self.set_status_message("Connections done.")
 
+    def has_skin_cluster(self, source_objects):
+        if not source_objects:
+            return False
+
+        if not cmds.objExists(source_objects):
+            return False
+
+        history_of_skin = cmds.listHistory(source_objects)
+        skin_clusters = cmds.ls(history_of_skin, type="skinCluster")
+
+        if skin_clusters:
+            return True
+
+        return False
+
     def copy_skin_wts_mesh(self, source_obj, target_obj, association_type, influenceAssociation_list):
         source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
         if not source_skin:
             cmds.warning("{} has no skinCluster.".format(source_obj))
-            return
+            return False
 
         source_skin = source_skin[0]
 
@@ -1121,7 +1164,7 @@ class RiggingUtilityTool(QMainWindow):
             target_skin = cmds.skinCluster(influences_joint_source, target_obj, toSelectedBones=True, bindMethod=0, skinMethod=0, normalizeWeights=1,)
             if not target_skin:
                 cmds.warning("Failed to create a skinCluster on {}.".format(target_obj))
-                return
+                return False
             target_skin = target_skin[0]
         else:
             target_skin = target_skin[0]
@@ -1135,6 +1178,7 @@ class RiggingUtilityTool(QMainWindow):
         )
         print("Copied {} -> {}".format(source_obj, target_obj))
         self.set_status_message("Copied Skin weights done.")
+        return True
 
     @Slot()
     def copy_skins(self):
@@ -1179,7 +1223,13 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             for i in range(len(source_objects)):
-                self.copy_skin_wts_mesh(source_objects[i], target_objects[i], association_type, influenceAssociation_list)
+                source_obj = source_objects[i]
+                target_obj = target_objects[i]
+                if not self.has_skin_cluster(source_obj):
+                    cmds.warning("{} has no skinCluster.".format(source_obj))
+                    self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
+                    continue
+                self.copy_skin_wts_mesh(source_obj, target_obj, association_type, influenceAssociation_list)
                 print(i)
 
         # match by name
@@ -1191,6 +1241,11 @@ class RiggingUtilityTool(QMainWindow):
 
             suffix = self.suffix_lineedit.text().strip()
             for source_obj in source_objects:
+                if not self.has_skin_cluster(source_obj):
+                    cmds.warning("{} has no skinCluster.".format(source_obj))
+                    self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
+                    continue
+
                 target_suffix = source_obj.rsplit("_", 1)[0]
                 target_obj = f"{target_suffix}{suffix}"
 
