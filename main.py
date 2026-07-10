@@ -19,7 +19,7 @@ def get_maya_main_window():
 class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Rigging Utility Tool")
+        self.setWindowTitle("Maya Multi-Object Rigging Toolkit")
         self.setGeometry(100, 200, 500, 600)
         self.initUI()
 
@@ -143,7 +143,7 @@ class RiggingUtilityTool(QMainWindow):
     def primary_button(self, text):
 
         new_push_button = QPushButton(text)
-        new_push_button.setFixedSize(300, 40)
+        # new_push_button.setFixedSize(300, 40)
         # new_push_button.setStyleSheet("""
         #     QPushButton{
         #         background:#2E8BFF;
@@ -290,7 +290,7 @@ class RiggingUtilityTool(QMainWindow):
         self.match_group = QHBoxLayout()
 
         # Reduce the space around the layout
-        self.match_group.setContentsMargins(100, 0, 0, 0)
+        self.match_group.setContentsMargins(100, 0, 30, 0)
 
         # Reduce the space between widgets
         self.match_group.setSpacing(10)
@@ -371,12 +371,12 @@ class RiggingUtilityTool(QMainWindow):
         self.offset_radio_off = QRadioButton("Off")
         self.offset_radio_off.setChecked(True)
         self.offset_radio_on.setToolTip("Maintain Offset off and on ")
-        maintain_offset_layout.setContentsMargins(80, 0, 0, 0)
+        maintain_offset_layout.setContentsMargins(120, 0, 100, 0)
+        maintain_offset_layout.setSpacing(0)
     
         maintain_offset_layout.addWidget(maintain_offset)
         maintain_offset_layout.addWidget(self.offset_radio_on)
         maintain_offset_layout.addWidget(self.offset_radio_off)
-        maintain_offset_layout.setSpacing(0)
 
         # constraint adding everything to main Tab widget 
         constraint_main_layout.addLayout(constraint_type_layout) 
@@ -444,9 +444,11 @@ class RiggingUtilityTool(QMainWindow):
 
         # Constraint Button creation 
         self.constraint_button_layout = QHBoxLayout()
-        self.create_constraint_btn = self.primary_button("Create Constraint")
+        self.create_constraint_btn = self.primary_button("Create Constraints")
+        self.disconnect_constraint_btn = self.primary_button("Delete Constraints")
         self.constraint_button_layout.addWidget(self.create_constraint_btn)
-        constraint_main_layout.addLayout(self.constraint_button_layout)
+        self.constraint_button_layout.addWidget(self.disconnect_constraint_btn)
+        constraint_main_layout.addLayout(self.constraint_button_layout, alignment=Qt.AlignCenter)
 
         # Set Tool Tip 
         self.create_constraint_btn.setToolTip("Create Constraints button")
@@ -470,14 +472,15 @@ class RiggingUtilityTool(QMainWindow):
             self.scale_y_checkbox_constraint.setEnabled(False)
             self.scale_z_checkbox_constraint.setEnabled(False)
 
-        
 
         # signals for constraints 
         self.create_constraint_btn.clicked.connect(self.create_constraints)
         self.translate_all_checkbox_constraint.toggled.connect(self.enable_disable_translate_constraints)
         self.rotate_all_checkbox_constraint.toggled.connect(self.enable_disable_rotate_constraints)
         self.scale_all_checkbox_constraint.toggled.connect(self.enable_disable_scale_constraints)
-   
+        self.reset_constraint.clicked.connect(self.reset_constraint_options)
+        self.disconnect_constraint_btn.clicked.connect(self.delete_constraints)
+
     def connection_tab_ui(self):
         # create The connection tab
         connection_tab_layout = QVBoxLayout()
@@ -505,7 +508,7 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_z_checkbox_connection = QCheckBox("Z")
 
         # Reset button 
-        self.reset_connection_axes = self.primary_button("Reset")
+        self.reset_connection_axes_button = self.primary_button("Reset")
 
         self.connection_options_layout.addWidget(translate_label, 0, 0, alignment=Qt.AlignRight)
         self.connection_options_layout.addWidget(self.translate_all_checkbox_connection, 0, 1)
@@ -524,8 +527,8 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_options_layout.addWidget(self.scale_x_checkbox_connection, 2, 2)
         self.connection_options_layout.addWidget(self.scale_y_checkbox_connection, 2, 3)
         self.connection_options_layout.addWidget(self.scale_z_checkbox_connection, 2, 4)
-        self.connection_options_layout.addWidget(self.reset_connection_axes, 2, 5)
-        self.reset_connection_axes.setFixedSize(80, 13)
+        self.connection_options_layout.addWidget(self.reset_connection_axes_button, 2, 5)
+        self.reset_connection_axes_button.setFixedSize(80, 13)
 
         # All connection Atrributes List 
         self.driver_driven_group = QGroupBox("Driver / Driven Attributes")
@@ -587,6 +590,7 @@ class RiggingUtilityTool(QMainWindow):
         # Create connection buttons 
         self.connection_button_layout = QHBoxLayout()
         self.create_connection_button = self.primary_button("Create Connections")
+        self.disconnect_connection_button = self.primary_button("Delete Connections")
 
         connection_tab_layout.addWidget(self.connection_axes_group)
 
@@ -598,6 +602,7 @@ class RiggingUtilityTool(QMainWindow):
         divider_connection = self.create_divider_for_ui(QFrame.HLine)
         connection_tab_layout.addWidget(divider_connection)
         self.connection_button_layout.addWidget(self.create_connection_button)
+        self.connection_button_layout.addWidget(self.disconnect_connection_button)
         connection_tab_layout.addLayout(self.connection_button_layout)
         
         self.connection_axes_group.setLayout(self.connection_options_layout)
@@ -611,6 +616,8 @@ class RiggingUtilityTool(QMainWindow):
         self.rotate_all_checkbox_connection.toggled.connect(self.enable_disable_rotate_connection)
         self.scale_all_checkbox_connection.toggled.connect(self.enable_disable_scale_connection)
         self.create_connection_button.clicked.connect(self.create_connections)
+        self.reset_connection_axes_button.clicked.connect(self.reset_connection_options)
+        self.disconnect_connection_button.clicked.connect(self.disconnect_connections)
 
         # signals For Populating cutom attributes 
         # self.source_obj_list.itemSelectionChanged.connect(
@@ -1300,6 +1307,60 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_x_checkbox_connection.setEnabled(not checked)
         self.scale_y_checkbox_connection.setEnabled(not checked)
         self.scale_z_checkbox_connection.setEnabled(not checked)
+
+    @Slot()
+    def reset_connection_options(self): 
+        self.translate_all_checkbox_connection.setChecked(True)
+        self.rotate_all_checkbox_connection.setChecked(True)
+        self.scale_all_checkbox_connection.setChecked(True)
+
+    @Slot()
+    def reset_constraint_options(self):
+        self.translate_all_checkbox_constraint.setChecked(True)
+        self.rotate_all_checkbox_constraint.setChecked(True)
+        self.scale_all_checkbox_constraint.setChecked(True)
+
+    @Slot()
+    def disconnect_connections(self):
+        source_objects = self.get_items_from_list(self.source_obj_list)
+        target_objects = self.get_items_from_list(self.target_obj_list)
+
+        if len(source_objects) != len(target_objects):
+            cmds.warning("Source and Target lists must contain the same number of objects.")
+            self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+            return
+        
+        # print(target_objects)
+        connected_attributes_sources = cmds.listConnections(source_objects, source=True, destination=True, plugs=True)
+        connected_attributes_targets = cmds.listConnections(target_objects, source=True, destination=False, plugs=True)
+        
+        # print(connected_attributes_sources)
+        # print(connected_attributes_targets)
+        if connected_attributes_targets:
+            for object_index in range(len(connected_attributes_targets)):
+                # print(connected_attributes_targets[object_index], connected_attributes_sources[object_index])
+                cmds.disconnectAttr(connected_attributes_targets[object_index], connected_attributes_sources[object_index])
+
+                print(f"Disconnected {connected_attributes_targets[object_index]} -> {connected_attributes_sources[object_index]}")
+
+        else:
+            print("No incomming connections Found on target objects.")
+
+    @Slot()
+    def delete_constraints(self):
+        target_objects = self.get_items_from_list(self.target_obj_list)
+        deleted_any = False
+        
+        for object in target_objects:
+            constraints = cmds.listConnections(object, type="constraint") or []
+            if constraints:
+                cmds.delete(constraints)
+                deleted_any = True
+
+        if deleted_any:
+            self.set_status_message("Deleted target constraints.")
+        else:
+            self.set_status_message("No constraints found on target objects.")
 
     def get_items_from_list(self, list_widget_object):
         items = []
