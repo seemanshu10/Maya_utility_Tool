@@ -19,7 +19,7 @@ def get_maya_main_window():
 class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Maya Multi-Object Rigging Toolkit")
+        self.setWindowTitle("Multi-Object Rigging Toolkit")
         self.setGeometry(100, 200, 500, 600)
         self.initUI()
 
@@ -610,6 +610,9 @@ class RiggingUtilityTool(QMainWindow):
 
         # set ToolTips 
         self.create_connection_button.setToolTip("Create Connections on selected objects")
+        self.driver_combobox.setToolTip("Driver Combobox")
+        self.driven_combobox.setToolTip("Driven Combobox")
+        self.reset_connection_axes_button.setToolTip("Connection Axes reset settings")
 
         # create signals 
         self.translate_all_checkbox_connection.toggled.connect(self.enable_disable_translate_connection)
@@ -618,6 +621,8 @@ class RiggingUtilityTool(QMainWindow):
         self.create_connection_button.clicked.connect(self.create_connections)
         self.reset_connection_axes_button.clicked.connect(self.reset_connection_options)
         self.disconnect_connection_button.clicked.connect(self.disconnect_connections)
+        self.driver_driven_group.toggled.connect(self.driver_driven_connection_axes_enable)
+        self.connection_axes_group.toggled.connect(self.connection_axes_enabled)
 
         # signals For Populating cutom attributes 
         # self.source_obj_list.itemSelectionChanged.connect(
@@ -656,6 +661,8 @@ class RiggingUtilityTool(QMainWindow):
                 self.driven_combobox.currentText(),
             )
         )
+
+        # if self.radio_button_name.isChecked():
 
     def copyskin_tab_ui(self):
 
@@ -755,24 +762,7 @@ class RiggingUtilityTool(QMainWindow):
         current_object = loaded_selected_item.text()
         custom_attributes = cmds.listAttr(current_object, keyable=True)
         return custom_attributes
-
-    @Slot()
-    def populate_custom_attributes(self, list_widget, target_list_widget):
-        target_list_widget.clear()
-
-        current_object_selected = list_widget.currentItem()
-        if not current_object_selected:
-            return
-
-        current_object_name = current_object_selected.text()
-        print(current_object_name)
-
-        # driven_combobox_value = self.driver_combobox.currentText()
-        # print(driven_combobox_value)
-        custom_attributes = cmds.listAttr(current_object_name, userDefined=True) or []
-        for attribute in custom_attributes:
-            target_list_widget.addItem(attribute)
-            
+   
     @Slot()
     def update_list(self, list_widget, target_list_widget, driver_driven_combobox_value):
         current_object_selected = list_widget.currentItem()
@@ -1322,33 +1312,74 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def disconnect_connections(self):
+        disconnected_any = False
         source_objects = self.get_items_from_list(self.source_obj_list)
-        target_objects = self.get_items_from_list(self.target_obj_list)
+        object_pairs = []
 
-        if len(source_objects) != len(target_objects):
-            cmds.warning("Source and Target lists must contain the same number of objects.")
-            self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
-            return
-        
-        # print(target_objects)
-        connected_attributes_sources = cmds.listConnections(source_objects, source=True, destination=True, plugs=True)
-        connected_attributes_targets = cmds.listConnections(target_objects, source=True, destination=False, plugs=True)
-        
-        # print(connected_attributes_sources)
-        # print(connected_attributes_targets)
-        if connected_attributes_targets:
-            for object_index in range(len(connected_attributes_targets)):
-                # print(connected_attributes_targets[object_index], connected_attributes_sources[object_index])
-                cmds.disconnectAttr(connected_attributes_targets[object_index], connected_attributes_sources[object_index])
+        # Match by order
+        if self.radio_button_order.isChecked():
+            target_objects = self.get_items_from_list(self.target_obj_list)
 
-                print(f"Disconnected {connected_attributes_targets[object_index]} -> {connected_attributes_sources[object_index]}")
+            if not source_objects or not target_objects:
+                print("Source and Target object lists need to be populated.")
+                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
+                return
 
+            if len(source_objects) != len(target_objects):
+                cmds.warning("Source and Target lists must contain the same number of objects.")
+                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                return
+
+            for i in range(len(source_objects)):
+                object_pairs.append((source_objects[i], target_objects[i]))
+
+        # Match by name
         else:
-            print("No incomming connections Found on target objects.")
+            if not source_objects:
+                cmds.warning("Source object list needs to be populated.")
+                self.set_status_message("ERROR: Source object list needs to be populated.")
+                return
+
+            suffix = self.suffix_lineedit.text().strip()
+
+            for source_obj in source_objects:
+                target_prefix = source_obj.rsplit("_", 1)[0]
+                target_obj = f"{target_prefix}{suffix}"
+                object_pairs.append((source_obj, target_obj))
+
+        # Disconnect connections
+        for source_obj, target_obj in object_pairs:
+            if not cmds.objExists(source_obj) or not cmds.objExists(target_obj):
+                continue
+
+            connection_attributes = cmds.listConnections(source_obj, destination=True, source=False, plugs=True, connections=True) or []
+
+            for connection_index in range(0, len(connection_attributes), 2):
+                try:
+                    cmds.disconnectAttr(
+                        connection_attributes[connection_index],
+                        connection_attributes[connection_index + 1]
+                    )
+                    print(
+                        f"Disconnected {connection_attributes[connection_index]} -> "
+                        f"{connection_attributes[connection_index + 1]}"
+                    )
+                    disconnected_any = True
+
+                except RuntimeError as exc:
+                    print(
+                        f"Unable to disconnect {connection_attributes[connection_index]} -> "
+                        f"{connection_attributes[connection_index + 1]}: {exc}"
+                    )
+
+        if disconnected_any:
+            self.set_status_message("Disconnected matching connections.")
+        else:
+            self.set_status_message("No matching connections found to disconnect.")
 
     @Slot()
     def delete_constraints(self):
-        target_objects = self.get_items_from_list(self.target_obj_list)
+        target_objects = self.get_items_from_list(self.source_obj_list)
         deleted_any = False
         
         for object in target_objects:
@@ -1362,12 +1393,23 @@ class RiggingUtilityTool(QMainWindow):
         else:
             self.set_status_message("No constraints found on target objects.")
 
+    @Slot()
+    def connection_axes_enabled(self, checked):
+        if checked:
+            self.driver_driven_group.setChecked(False)
+            self.connection_axes_group.setChecked(True)
+        
+    @Slot()
+    def driver_driven_connection_axes_enable(self, checked):
+        if checked:
+            self.connection_axes_group.setChecked(False)
+            self.driver_driven_group.setChecked(True)
+            
     def get_items_from_list(self, list_widget_object):
         items = []
         for i in range(list_widget_object.count()):
             items.append(list_widget_object.item(i).text())
         return items
-
 
 def show_window():
     global my_window
