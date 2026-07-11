@@ -1,5 +1,5 @@
-from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout, 
-                               QLabel, QListWidget, QHBoxLayout, QVBoxLayout, 
+from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
+                               QLabel, QListWidget, QListWidgetItem, QHBoxLayout, QVBoxLayout,
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
                                QCheckBox, QFormLayout, QStyle, QLineEdit, QFrame, QSizePolicy)
 
@@ -783,18 +783,31 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def load_selected_objects(self, list_widget_object):
-    # Get selected objects in Maya
+        # Get selected objects in Maya
         selected_objects = cmds.ls(selection=True) or []
         if not selected_objects:
             cmds.warning("No objects selected in Maya.")
             self.set_status_message("ERROR: No objects selected in Maya.")
             return
 
+        self.objects_key_value_dict = {}
         # adding sleected objects 
+        
         for obj in selected_objects:     
-            list_widget_object.addItem(obj)
+            target_suffix = obj.rsplit("|", 1)
+            if len(target_suffix) == 2:
+                self.objects_key_value_dict[target_suffix[1]] = obj
+            else:
+                self.objects_key_value_dict[obj] = "root"
+
+        for key, value in self.objects_key_value_dict.items():
+            # print(key, value)
+            list_widget_object.addItem(f"{key} -> {value}")
+
         print(f"Added Selected Objects in object ListBox ")
         self.set_status_message("Added selected objects to the list.")
+
+        print(self.objects_key_value_dict)
 
     @Slot()
     def radio_buttondisable(self, checked):
@@ -881,7 +894,7 @@ class RiggingUtilityTool(QMainWindow):
     def create_constraints(self):
         source_objects = self.get_items_from_list(self.source_obj_list)
         target_objects = self.get_items_from_list(self.target_obj_list)
-        # print(source_objects)
+        print(source_objects)
         # print(target_objects)
 
         constraint_type = self.constraint_type_combobox.currentIndex()
@@ -1356,21 +1369,12 @@ class RiggingUtilityTool(QMainWindow):
 
             for connection_index in range(0, len(connection_attributes), 2):
                 try:
-                    cmds.disconnectAttr(
-                        connection_attributes[connection_index],
-                        connection_attributes[connection_index + 1]
-                    )
-                    print(
-                        f"Disconnected {connection_attributes[connection_index]} -> "
-                        f"{connection_attributes[connection_index + 1]}"
-                    )
+                    cmds.disconnectAttr(connection_attributes[connection_index], connection_attributes[connection_index + 1])
+                    print(f"Disconnected {connection_attributes[connection_index]} -> {connection_attributes[connection_index + 1]}")
                     disconnected_any = True
 
                 except RuntimeError as exc:
-                    print(
-                        f"Unable to disconnect {connection_attributes[connection_index]} -> "
-                        f"{connection_attributes[connection_index + 1]}: {exc}"
-                    )
+                    print(f"Unable to disconnect {connection_attributes[connection_index]} -> {connection_attributes[connection_index + 1]}: {exc}")
 
         if disconnected_any:
             self.set_status_message("Disconnected matching connections.")
@@ -1407,8 +1411,13 @@ class RiggingUtilityTool(QMainWindow):
             
     def get_items_from_list(self, list_widget_object):
         items = []
+
         for i in range(list_widget_object.count()):
-            items.append(list_widget_object.item(i).text())
+            key, arrow , value = list_widget_object.item(i).text().partition(" -> ")
+            if value == "root":
+                items.append(key)
+            else:
+                items.append(value)
         return items
 
 def show_window():
