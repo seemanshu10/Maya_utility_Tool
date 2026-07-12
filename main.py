@@ -762,7 +762,27 @@ class RiggingUtilityTool(QMainWindow):
         current_object = loaded_selected_item.text()
         custom_attributes = cmds.listAttr(current_object, keyable=True)
         return custom_attributes
-   
+    
+    def object_pairs_namematch(self, suffix, source_objects):
+        # suffix = suffix_lineedit.text().strip()
+        object_pairs = []
+        for source_obj in source_objects:
+            full_path = cmds.ls(source_obj, long=True)[0]
+            top_grp_hierarchy = full_path.split("|")[1]
+            target_object = source_obj.split("|")[-1]
+            target_object_suffix = target_object.rsplit("_", 1)[0]
+            target_name = f"{target_object_suffix}{suffix}"
+            # print(target_name)
+            all_children = cmds.listRelatives(top_grp_hierarchy, ad=True, f=True) or []
+            matches = []
+            for x in all_children:
+                if x.endswith("|" + target_name):
+                    matches= x
+                    # print(matches)
+
+            object_pairs.append((source_obj, matches))
+        return object_pairs
+
     @Slot()
     def update_list(self, list_widget, target_list_widget, driver_driven_combobox_value):
         current_object_selected = list_widget.currentItem()
@@ -799,7 +819,7 @@ class RiggingUtilityTool(QMainWindow):
                 self.objects_key_value_dict[target_suffix[1]] = obj
             else:
                 self.objects_key_value_dict[obj] = "root"
-
+        
         for key, value in self.objects_key_value_dict.items():
             # print(key, value)
             list_widget_object.addItem(f"{key} -> {value}")
@@ -965,29 +985,48 @@ class RiggingUtilityTool(QMainWindow):
                 return
             
             suffix = self.suffix_lineedit.text().strip()
-            # print(suffix)
-            for obj in source_objects:
-                target_suffix = obj.rsplit("_", 1)[0]
-                target_name = f"{target_suffix}{suffix}"
+            # object_pairs = []
+            # for source_obj in source_objects:
+            #     full_path = cmds.ls(source_obj, long=True)[0]
+            #     top_grp_hierarchy = full_path.split("|")[1]
+            #     target_object = source_obj.split("|")[-1]
+            #     target_object_suffix = target_object.rsplit("_", 1)[0]
+            #     target_name = f"{target_object_suffix}{suffix}"
+            #     # print(target_name)
+            #     all_children = cmds.listRelatives(top_grp_hierarchy, ad=True, f=True) or []
+            #     matches = []
+            #     for x in all_children:
+            #         if x.endswith("|" + target_name):
+            #             matches= x
+            #             # print(matches)
 
-                if not cmds.objExists(target_name):
-                    cmds.warning("{} does not exist.".format(target_name))
+            #     object_pairs.append((source_obj, matches))
+
+            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            print(object_pairs)
+
+            # connect constraints 
+            for source_obj, target_obj in object_pairs:
+                # target_suffix = obj.rsplit("_", 1)[0]
+                # target_name = f"{target_suffix}{suffix}"
+
+                if not cmds.objExists(target_obj):
+                    cmds.warning("{} does not exist.".format(target_obj))
                     continue
                 # target_dict.append(target_name)
                 # print(target_suffix)
                 if constraint_type == 0:
-                    cmds.parentConstraint(obj, target_name, mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
+                    cmds.parentConstraint(source_obj, target_obj, mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
                 elif constraint_type == 1:
-                    cmds.pointConstraint(obj, target_name, mo=offset_type, skip=skip_translate)
+                    cmds.pointConstraint(source_obj, target_obj, mo=offset_type, skip=skip_translate)
                 if constraint_type == 2:
-                    cmds.orientConstraint(obj, target_name, mo=offset_type, skip=skip_rotate)
+                    cmds.orientConstraint(source_obj, target_obj, mo=offset_type, skip=skip_rotate)
                 if constraint_type == 3:
-                    cmds.scaleConstraint(obj, target_name, mo=offset_type, skip=skip_scale)  
-
+                    cmds.scaleConstraint(source_obj, target_obj, mo=offset_type, skip=skip_scale)  
 
         self.set_status_message("Constraints completed")
             # print(target_dict)
-            
+
     def connect_attrs(self, source_obj, target_obj, connection_attrs):
         if not cmds.objExists(source_obj):
             cmds.warning("Source object {} does not exist.".format(source_obj))
@@ -1143,9 +1182,12 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             suffix = self.suffix_lineedit.text().strip()
-            for source_obj in source_objects:
-                target_suffix = source_obj.rsplit("_", 1)[0]
-                target_obj = f"{target_suffix}{suffix}"
+            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            # print(object_pairs)
+
+            for source_obj, target_obj in object_pairs:
+                # target_suffix = source_obj.rsplit("_", 1)[0]
+                # target_obj = f"{target_suffix}{suffix}"
 
                 if not cmds.objExists(target_obj):
                     cmds.warning("{} does not exist.".format(target_obj))
@@ -1263,7 +1305,10 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             suffix = self.suffix_lineedit.text().strip()
-            for source_obj in source_objects:
+            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            print(object_pairs)
+
+            for source_obj, target_obj in object_pairs:
                 if not self.has_skin_cluster(source_obj):
                     cmds.warning("{} has no skinCluster.".format(source_obj))
                     self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
@@ -1355,11 +1400,30 @@ class RiggingUtilityTool(QMainWindow):
 
             suffix = self.suffix_lineedit.text().strip()
 
-            for source_obj in source_objects:
-                target_prefix = source_obj.rsplit("_", 1)[0]
-                target_obj = f"{target_prefix}{suffix}"
-                object_pairs.append((source_obj, target_obj))
+            # for source_obj in source_objects:
+            #     target_prefix = source_obj.rsplit("_", 1)[0]
+            #     target_obj = f"{target_prefix}{suffix}"
+            #     object_pairs.append((source_obj, target_obj))
 
+            # for source_obj in source_objects:
+            #     full_path = cmds.ls(source_obj, long=True)[0]
+            #     top_grp_hierarchy = full_path.split("|")[1]
+            #     target_object = source_obj.split("|")[-1]
+            #     target_object_suffix = target_object.rsplit("_", 1)[0]
+            #     target_name = f"{target_object_suffix}{suffix}"
+            #     # print(target_name)
+            #     all_children = cmds.listRelatives(top_grp_hierarchy, ad=True, f=True) or []
+            #     matches = []
+            #     for x in all_children:
+            #         if x.endswith("|" + target_name):
+            #             matches= x
+            #             # print(matches)
+
+            #     object_pairs.append((source_obj, matches))
+
+            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            print(object_pairs)
+            
         # Disconnect connections
         for source_obj, target_obj in object_pairs:
             if not cmds.objExists(source_obj) or not cmds.objExists(target_obj):
