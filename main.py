@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
                                QLabel, QListWidget, QListWidgetItem, QHBoxLayout, QVBoxLayout,
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
-                               QCheckBox, QFormLayout, QStyle, QLineEdit, QFrame, QSizePolicy)
+                               QCheckBox, QFormLayout, QStyle, QLineEdit, QFrame)
 
 from PySide2.QtCore import Qt, Slot
 
@@ -20,7 +20,7 @@ class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Multi-Object Rigging Toolkit")
-        self.setGeometry(100, 200, 500, 600)
+        self.setGeometry(50, 100, 500, 900)
         self.initUI()
 
     def initUI(self):
@@ -32,72 +32,229 @@ class RiggingUtilityTool(QMainWindow):
         self.constraint_tab_ui()
         self.connection_tab_ui()
         self.copyskin_tab_ui()
-        # self.apply_theme()
+        self.apply_theme()
 
     def apply_theme(self):
         self.setStyleSheet("""
-            QPushButton {
-                background-color: #007FFF;
-                color: white;
-                border-radius: 10px;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-            QPushButton:pressed {
-                background-color: #1c5980;
-            }        
-            QPushButton:disabled {
-                background-color: #cbd5e1;
-                color: white;
-            }
-            QLineEdit {
-                color: white;
-                border: 1px solid #00a8ff;
-                padding: 6px;
-                border-radius: 8px;
-            }
-            QLineEdit:focus {
-                border: 2px solid purple;
-            }
-                           
-            QLineEdit:disabled {
-                background-color: grey;
-            }   
-                           
-            QTextEdit {
-                color: black;
-                font-size: 15px;
-                border: 1px solid #485460;
-                padding: 6px;
-                border-radius: 10px;
-            }
-            QTextEdit:focus {
-                border: 2px solid purple;
-            }
-                           
-            QTabWidget::pane {
-                border: 1px solid #555;
-                border-radius: 8px;
-                background: #323232;
-            }
-                           
-            QTabBar::tab {
-                background: #3a3a3a;
-                padding: 8px 18px;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
-                margin-right: 2px;
-            }
-                           
-            QTabBar::tab:selected {
-                background: #3C7BEA;
-                color: white;
+            QMainWindow, QWidget {
+                background-color: #444444;
+                color: #cccccc;
+                font-size: 12px;
             }
 
-            QTabBar::tab:hover {
-                background: #2980b9;
+            QToolTip {
+                background-color: #2b2b2b;
+                color: #cccccc;
+                border: 1px solid #222222;
+                padding: 4px;
+            }
+
+            /* ---------- Buttons ---------- */
+            QPushButton {
+                background-color: #5d5d5d;
+                color: #e6e6e6;
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                padding: 6px 16px;
+            }
+            QPushButton:hover {
+                background-color: #6b6b6b;
+                border: 1px solid #E8792A;
+            }
+            QPushButton:pressed {
+                background-color: #E8792A;
+                color: #ffffff;
+            }
+            QPushButton:disabled {
+                background-color: #4a4a4a;
+                color: #7a7a7a;
+                border: 1px solid #3a3a3a;
+            }
+
+            /* ---------- Text inputs ---------- */
+            QLineEdit, QTextEdit {
+                background-color: #232323;
+                color: #cccccc;
+                border: 1px solid #1e1e1e;
+                border-radius: 3px;
+                padding: 5px;
+                selection-background-color: #E8792A;
+            }
+            QLineEdit:focus, QTextEdit:focus {
+                border: 1px solid #E8792A;
+            }
+            QLineEdit:disabled, QTextEdit:disabled {
+                background-color: #3a3a3a;
+                color: #7a7a7a;
+            }
+
+            /* ---------- Labels ---------- */
+            QLabel {
+                color: #cccccc;
+                background: transparent;
+            }
+            QLabel:disabled {
+                color: #7a7a7a;
+            }
+
+            /* ---------- GroupBox ---------- */
+            QGroupBox {
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background-color: #3d3d3d;
+                font-weight: bold;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                left: 8px;
+                padding: 0 4px;
+                color: #f0b98a;
+            }
+
+            /* ---------- CheckBox / RadioButton ---------- */
+            QCheckBox, QRadioButton {
+                color: #cccccc;
+                spacing: 6px;
+                background: transparent;
+            }
+            QCheckBox::indicator, QRadioButton::indicator {
+                width: 13px;
+                height: 13px;
+                background-color: #232323;
+                border: 1px solid #1a1a1a;
+            }
+            QCheckBox::indicator {
+                border-radius: 2px;
+            }
+            QRadioButton::indicator {
+                border-radius: 7px;
+            }
+            QCheckBox::indicator:hover, QRadioButton::indicator:hover {
+                border: 1px solid #E8792A;
+            }
+            QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+                background-color: #E8792A;
+                border: 1px solid #E8792A;
+            }
+            QCheckBox:disabled, QRadioButton:disabled {
+                color: #7a7a7a;
+            }
+
+            /* ---------- ComboBox ---------- */
+            QComboBox {
+                background-color: #5d5d5d;
+                color: #e6e6e6;
+                border: 1px solid #2a2a2a;
+                border-radius: 3px;
+                padding: 4px 8px;
+            }
+            QComboBox:hover {
+                border: 1px solid #E8792A;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 18px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #383838;
+                color: #cccccc;
+                border: 1px solid #2a2a2a;
+                selection-background-color: #E8792A;
+                selection-color: #ffffff;
+                outline: none;
+            }
+
+            /* ---------- ListWidget ---------- */
+            QListWidget {
+                background-color: #232323;
+                color: #cccccc;
+                border: 1px solid #1e1e1e;
+                border-radius: 3px;
+                alternate-background-color: #282828;
+            }
+            QListWidget::item {
+                padding: 3px;
+            }
+            QListWidget::item:selected {
+                background-color: #E8792A;
+                color: #ffffff;
+            }
+            QListWidget::item:hover:!selected {
+                background-color: #3a3a3a;
+            }
+
+            /* ---------- TabWidget ---------- */
+            QTabWidget::pane {
+                border: 1px solid #2a2a2a;
+                border-radius: 4px;
+                background: #3d3d3d;
+                top: -1px;
+            }
+            QTabBar::tab {
+                background: #393939;
+                color: #b0b0b0;
+                padding: 7px 18px;
+                border: 1px solid #2a2a2a;
+                border-bottom: none;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #E8792A;
+                color: #ffffff;
+            }
+            QTabBar::tab:hover:!selected {
+                background: #4a4a4a;
+            }
+
+            /* ---------- StatusBar ---------- */
+            QStatusBar {
+                background: #393939;
+                color: #b0b0b0;
+                border-top: 1px solid #2a2a2a;
+            }
+
+            /* ---------- Frame (dividers) ---------- */
+            QFrame[frameShape="4"], QFrame[frameShape="5"] {
+                color: #2a2a2a;
+            }
+
+            /* ---------- ScrollBar ---------- */
+            QScrollBar:vertical {
+                background: #393939;
+                width: 12px;
+                margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: #5d5d5d;
+                border-radius: 5px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #E8792A;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar:horizontal {
+                background: #393939;
+                height: 12px;
+                margin: 0;
+            }
+            QScrollBar::handle:horizontal {
+                background: #5d5d5d;
+                border-radius: 5px;
+                min-width: 20px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #E8792A;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                width: 0px;
             }
         """)
 
@@ -143,25 +300,6 @@ class RiggingUtilityTool(QMainWindow):
     def primary_button(self, text):
 
         new_push_button = QPushButton(text)
-        # new_push_button.setFixedSize(300, 40)
-        # new_push_button.setStyleSheet("""
-        #     QPushButton{
-        #         background:#2E8BFF;
-        #         color:white;
-        #         border-radius:8px;
-        #         font-weight:bold;
-        #         font-size:11pt;
-        #     }
-
-        #     QPushButton:hover{
-        #         background:#5CA7FF;
-        #     }
-
-        #     QPushButton:pressed{
-        #         background:#1C6FD9;
-        #     }
-        # """)
-
         return new_push_button
 
     def main_ui(self):
@@ -191,31 +329,31 @@ class RiggingUtilityTool(QMainWindow):
         self.target_obj_list = QListWidget()
         self.target_obj_list.setMinimumHeight(200)
 
-        # set Tool Tips 
-        self.source_obj_list.setToolTip("All the Source Objects")
-        self.target_obj_list.setToolTip("All the Target Objects")
+        # set Tool Tips
+        self.source_obj_list.setToolTip("Objects that will drive the constraint / connection")
+        self.target_obj_list.setToolTip("Objects that will receive the constraint / connection")
 
         self.source_move_up_btn = QPushButton()
         self.source_move_up_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
-        self.source_move_up_btn.setToolTip("Move up")
+        self.source_move_up_btn.setToolTip("Move selected source item up")
         self.source_move_down_btn = QPushButton()
         self.source_move_down_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
-        self.source_move_down_btn.setToolTip("Move down")
+        self.source_move_down_btn.setToolTip("Move selected source item down")
 
         self.target_move_up_btn = QPushButton()
         self.target_move_up_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
-        self.target_move_up_btn.setToolTip("Move up")
+        self.target_move_up_btn.setToolTip("Move selected target item up")
         self.target_move_down_btn = QPushButton()
         self.target_move_down_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
-        self.target_move_down_btn.setToolTip("Move down")
+        self.target_move_down_btn.setToolTip("Move selected target item down")
 
-        # Source Objects Side 
+        # Source Objects Side
         self.load_select_obj_source_button = QPushButton("Load Selected Objects")
         self.clear_list_source_button = QPushButton("Clear")
 
-        # Set Tool Tip 
-        self.load_select_obj_source_button.setToolTip("Load Selected objects to Source")
-        self.clear_list_source_button.setToolTip("Clear objects List Widget")
+        # Set Tool Tip
+        self.load_select_obj_source_button.setToolTip("Load the current Maya selection into the Source list")
+        self.clear_list_source_button.setToolTip("Remove all items from the Source list")
 
         source_buttons_layout = QHBoxLayout()
         source_buttons_layout.addWidget(self.load_select_obj_source_button)
@@ -246,9 +384,9 @@ class RiggingUtilityTool(QMainWindow):
         self.load_target_obj_button = QPushButton("Load Selected Objects")
         self.clear_list_target_button = QPushButton("Clear")
 
-        # Set Tool Tip 
-        self.load_target_obj_button.setToolTip("Load Selected objects to Target")
-        self.clear_list_target_button.setToolTip("Clear objects List Widget")
+        # Set Tool Tip
+        self.load_target_obj_button.setToolTip("Load the current Maya selection into the Target list")
+        self.clear_list_target_button.setToolTip("Remove all items from the Target list")
 
         # connections Target list buttons 
         self.load_target_obj_button.clicked.connect(lambda: self.load_selected_objects(self.target_obj_list))
@@ -290,34 +428,36 @@ class RiggingUtilityTool(QMainWindow):
         self.match_group = QHBoxLayout()
 
         # Reduce the space around the layout
-        self.match_group.setContentsMargins(100, 0, 30, 0)
+        self.match_group.setContentsMargins(20, 0, 20, 5)
 
         # Reduce the space between widgets
-        self.match_group.setSpacing(10)
-        
+        self.match_group.setSpacing(5)
         relationship_label = QLabel("Match by:")
 
         self.radio_button_order = QRadioButton("Order")
         self.radio_button_name = QRadioButton("Name")
         self.radio_button_order.setChecked(True)
+        self.radio_button_order.setToolTip("Match source to target one-to-one by list order")
+        self.radio_button_name.setToolTip("Match source to target by name, using the suffix below")
 
         # Suffix text box
         self.suffix_lineedit = QLineEdit()
         self.suffix_lineedit.setPlaceholderText("Target suffix (e.g. _bind)")
-        # self.suffix_lineedit.setFixedWidth(250)
+        self.suffix_lineedit.setToolTip("Suffix appended to each source name to find its matching target")
+        self.suffix_lineedit.setFixedWidth(160)
         self.suffix_lineedit.setEnabled(False)
 
+        # Stretches on both sides keep the row centered regardless of group box width
+        self.match_group.addStretch(1)
         self.match_group.addWidget(relationship_label)
         self.match_group.addWidget(self.radio_button_order)
         self.match_group.addWidget(self.radio_button_name)
         self.match_group.addWidget(self.suffix_lineedit)
+        self.match_group.addStretch(1)
         self.match_group_offset.setLayout(self.match_group)
 
-        # connections matchby name 
+        # connections matchby name
         self.radio_button_name.toggled.connect(self.radio_buttondisable)
-
-        # Push everything to the left instead of spreading out
-        # self.match_group.addStretch()
 
         # creating TabWidget 
         self.main_tab_widget = QTabWidget()
@@ -329,10 +469,10 @@ class RiggingUtilityTool(QMainWindow):
         self.main_tab_widget.addTab(self.second_tab, "Connnection")
         self.main_tab_widget.addTab(self.third_tab, "Copy Skin")
 
-        # setToolTIp
-        self.first_tab.setToolTip("Constraint Tab")
-        self.second_tab.setToolTip("Connection Tab")
-        self.third_tab.setToolTip("CopySkin Tab")
+        # setToolTip (on the tab bar itself, not the page content)
+        self.main_tab_widget.setTabToolTip(0, "Create or delete constraints between source and target objects")
+        self.main_tab_widget.setTabToolTip(1, "Connect attributes directly between source and target objects")
+        self.main_tab_widget.setTabToolTip(2, "Copy skin weights from source to target objects")
 
         # addLAyouts in main_layout
         self.main_layout.addLayout(self.objects_grid_layout)    
@@ -359,7 +499,7 @@ class RiggingUtilityTool(QMainWindow):
         self.constraint_type_combobox.addItem("Point Constraint")
         self.constraint_type_combobox.addItem("Orient Constraint")
         self.constraint_type_combobox.addItem("Scale Constraint")
-        self.constraint_type_combobox.setToolTip("Select The Type of constraint")
+        self.constraint_type_combobox.setToolTip("Choose which constraint to create: Parent, Point, Orient, or Scale")
 
         constraint_type_layout.addWidget(constraint_type_label, alignment=Qt.AlignRight)
         constraint_type_layout.addWidget(self.constraint_type_combobox, alignment=Qt.AlignLeft)
@@ -370,7 +510,8 @@ class RiggingUtilityTool(QMainWindow):
         self.offset_radio_on = QRadioButton("On")
         self.offset_radio_off = QRadioButton("Off")
         self.offset_radio_off.setChecked(True)
-        self.offset_radio_on.setToolTip("Maintain Offset off and on ")
+        self.offset_radio_on.setToolTip("Keep the target's current offset from the source when constrained")
+        self.offset_radio_off.setToolTip("Snap the target directly onto the source (no offset)")
         maintain_offset_layout.setContentsMargins(120, 0, 100, 0)
         maintain_offset_layout.setSpacing(0)
     
@@ -396,26 +537,42 @@ class RiggingUtilityTool(QMainWindow):
             }""")
         
         constraint_options_layout = QGridLayout()
+        constraint_options_layout.setHorizontalSpacing(12)
+        constraint_options_layout.setVerticalSpacing(8)
+        constraint_options_layout.setColumnMinimumWidth(5, 24)
         translate_label = QLabel("Translate ")
         self.translate_all_checkbox_constraint = QCheckBox("All")
         self.translate_x_checkbox_constraint = QCheckBox("X")
         self.translate_y_checkbox_constraint = QCheckBox("Y")
         self.translate_z_checkbox_constraint = QCheckBox("Z")
+        self.translate_all_checkbox_constraint.setToolTip("Constrain all Translate axes (locks X/Y/Z individually)")
+        self.translate_x_checkbox_constraint.setToolTip("Constrain Translate X")
+        self.translate_y_checkbox_constraint.setToolTip("Constrain Translate Y")
+        self.translate_z_checkbox_constraint.setToolTip("Constrain Translate Z")
 
         rotate_label = QLabel("Rotate ")
         self.rotate_all_checkbox_constraint = QCheckBox("All")
         self.rotate_x_checkbox_constraint = QCheckBox("X")
         self.rotate_y_checkbox_constraint = QCheckBox("Y")
         self.rotate_z_checkbox_constraint = QCheckBox("Z")
+        self.rotate_all_checkbox_constraint.setToolTip("Constrain all Rotate axes (locks X/Y/Z individually)")
+        self.rotate_x_checkbox_constraint.setToolTip("Constrain Rotate X")
+        self.rotate_y_checkbox_constraint.setToolTip("Constrain Rotate Y")
+        self.rotate_z_checkbox_constraint.setToolTip("Constrain Rotate Z")
 
         scale_label = QLabel("Scale ")
         self.scale_all_checkbox_constraint = QCheckBox("All")
         self.scale_x_checkbox_constraint = QCheckBox("X")
         self.scale_y_checkbox_constraint = QCheckBox("Y")
         self.scale_z_checkbox_constraint = QCheckBox("Z")
+        self.scale_all_checkbox_constraint.setToolTip("Constrain all Scale axes (locks X/Y/Z individually)")
+        self.scale_x_checkbox_constraint.setToolTip("Constrain Scale X")
+        self.scale_y_checkbox_constraint.setToolTip("Constrain Scale Y")
+        self.scale_z_checkbox_constraint.setToolTip("Constrain Scale Z")
 
-        # Reset button 
+        # Reset button
         self.reset_constraint = self.primary_button("Reset")
+        self.reset_constraint.setToolTip("Reset all axis checkboxes back to their default (All enabled)")
 
         constraint_options_layout.addWidget(translate_label, 0, 0, alignment=Qt.AlignRight)
         constraint_options_layout.addWidget(self.translate_all_checkbox_constraint, 0, 1)
@@ -434,8 +591,8 @@ class RiggingUtilityTool(QMainWindow):
         constraint_options_layout.addWidget(self.scale_x_checkbox_constraint, 2, 2)
         constraint_options_layout.addWidget(self.scale_y_checkbox_constraint, 2, 3)
         constraint_options_layout.addWidget(self.scale_z_checkbox_constraint, 2, 4)
-        constraint_options_layout.addWidget(self.reset_constraint, 2, 5)
-        self.reset_constraint.setFixedSize(50, 30)
+        constraint_options_layout.addWidget(self.reset_constraint, 0, 6, 3, 1, alignment=Qt.AlignCenter)
+        self.reset_constraint.setFixedSize(60, 32)
         
         constraint_axes_group.setLayout(constraint_options_layout)
         constraint_main_layout.addWidget(constraint_axes_group)
@@ -450,8 +607,9 @@ class RiggingUtilityTool(QMainWindow):
         self.constraint_button_layout.addWidget(self.disconnect_constraint_btn)
         constraint_main_layout.addLayout(self.constraint_button_layout, alignment=Qt.AlignCenter)
 
-        # Set Tool Tip 
-        self.create_constraint_btn.setToolTip("Create Constraints button")
+        # Set Tool Tip
+        self.create_constraint_btn.setToolTip("Create the selected constraint type from Source onto Target objects")
+        self.disconnect_constraint_btn.setToolTip("Delete existing constraints from the Target objects")
 
         self.translate_all_checkbox_constraint.setChecked(True)
         self.rotate_all_checkbox_constraint.setChecked(True)
@@ -488,26 +646,39 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_axes_group = QGroupBox("Connection Axes ")
         self.connection_axes_group.setCheckable(True)
         self.connection_axes_group.setChecked(True)
+        self.connection_axes_group.setToolTip("Uncheck to skip axis connections entirely")
         self.connection_options_layout = QGridLayout()
         translate_label = QLabel("Translate ")
         self.translate_all_checkbox_connection = QCheckBox("All")
         self.translate_x_checkbox_connection = QCheckBox("X")
         self.translate_y_checkbox_connection = QCheckBox("Y")
         self.translate_z_checkbox_connection = QCheckBox("Z")
+        self.translate_all_checkbox_connection.setToolTip("Connect all Translate axes (locks X/Y/Z individually)")
+        self.translate_x_checkbox_connection.setToolTip("Connect Translate X")
+        self.translate_y_checkbox_connection.setToolTip("Connect Translate Y")
+        self.translate_z_checkbox_connection.setToolTip("Connect Translate Z")
 
         rotate_label = QLabel("Rotate ")
         self.rotate_all_checkbox_connection = QCheckBox("All")
         self.rotate_x_checkbox_connection = QCheckBox("X")
         self.rotate_y_checkbox_connection = QCheckBox("Y")
         self.rotate_z_checkbox_connection = QCheckBox("Z")
+        self.rotate_all_checkbox_connection.setToolTip("Connect all Rotate axes (locks X/Y/Z individually)")
+        self.rotate_x_checkbox_connection.setToolTip("Connect Rotate X")
+        self.rotate_y_checkbox_connection.setToolTip("Connect Rotate Y")
+        self.rotate_z_checkbox_connection.setToolTip("Connect Rotate Z")
 
         scale_label = QLabel("Scale ")
         self.scale_all_checkbox_connection = QCheckBox("All")
         self.scale_x_checkbox_connection = QCheckBox("X")
         self.scale_y_checkbox_connection = QCheckBox("Y")
         self.scale_z_checkbox_connection = QCheckBox("Z")
+        self.scale_all_checkbox_connection.setToolTip("Connect all Scale axes (locks X/Y/Z individually)")
+        self.scale_x_checkbox_connection.setToolTip("Connect Scale X")
+        self.scale_y_checkbox_connection.setToolTip("Connect Scale Y")
+        self.scale_z_checkbox_connection.setToolTip("Connect Scale Z")
 
-        # Reset button 
+        # Reset button
         self.reset_connection_axes_button = self.primary_button("Reset")
 
         self.connection_options_layout.addWidget(translate_label, 0, 0, alignment=Qt.AlignRight)
@@ -527,13 +698,14 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_options_layout.addWidget(self.scale_x_checkbox_connection, 2, 2)
         self.connection_options_layout.addWidget(self.scale_y_checkbox_connection, 2, 3)
         self.connection_options_layout.addWidget(self.scale_z_checkbox_connection, 2, 4)
-        self.connection_options_layout.addWidget(self.reset_connection_axes_button, 2, 5)
-        self.reset_connection_axes_button.setFixedSize(80, 13)
+        self.connection_options_layout.addWidget(self.reset_connection_axes_button, 2, 5, 2, 2)
+        self.reset_connection_axes_button.setFixedSize(80, 25)
 
-        # All connection Atrributes List 
+        # All connection Atrributes List
         self.driver_driven_group = QGroupBox("Driver / Driven Attributes")
         self.driver_driven_group.setCheckable(True)
         self.driver_driven_group.setChecked(False)
+        self.driver_driven_group.setToolTip("Enable to connect custom attributes instead of / in addition to the axes above")
         self.driver_driven_layout = QGridLayout()
         self.all_driver_label = QLabel("Driver Attribute")
         self.driver_combobox = QComboBox()
@@ -541,6 +713,8 @@ class RiggingUtilityTool(QMainWindow):
         self.all_driven_label = QLabel("Driven Attribute")
         self.driven_combobox = QComboBox()
         self.all_driven_listwidget = QListWidget()
+        self.all_drivers_listwidget.setToolTip("Attributes available on the Source objects")
+        self.all_driven_listwidget.setToolTip("Attributes available on the Target objects")
         
         self.driver_combobox.addItem("Default")
         self.driver_combobox.addItem("Custom")
@@ -608,11 +782,12 @@ class RiggingUtilityTool(QMainWindow):
         self.connection_axes_group.setLayout(self.connection_options_layout)
         self.second_tab.setLayout(connection_tab_layout)
 
-        # set ToolTips 
-        self.create_connection_button.setToolTip("Create Connections on selected objects")
-        self.driver_combobox.setToolTip("Driver Combobox")
-        self.driven_combobox.setToolTip("Driven Combobox")
-        self.reset_connection_axes_button.setToolTip("Connection Axes reset settings")
+        # set ToolTips
+        self.create_connection_button.setToolTip("Connect attributes from Source objects onto Target objects")
+        self.disconnect_connection_button.setToolTip("Disconnect the attribute connections from the Target objects")
+        self.driver_combobox.setToolTip("Attribute set to pull from on the Driver (Source) objects")
+        self.driven_combobox.setToolTip("Attribute set to push to on the Driven (Target) objects")
+        self.reset_connection_axes_button.setToolTip("Reset all axis checkboxes back to their default (All enabled)")
 
         # create signals 
         self.translate_all_checkbox_connection.toggled.connect(self.enable_disable_translate_connection)
@@ -677,6 +852,10 @@ class RiggingUtilityTool(QMainWindow):
         self.ray_cast_radio_btn = QRadioButton("Ray Cast")
         self.closest_component_radio_btn = QRadioButton("Closest Component")
         self.uv_space_radio_btn = QRadioButton("UV Space")
+        self.closest_point_radio_btn.setToolTip("Match each point to the closest point on the target surface (best for similar topology)")
+        self.ray_cast_radio_btn.setToolTip("Match points by casting a ray along vertex normals onto the target surface")
+        self.closest_component_radio_btn.setToolTip("Match each point to the closest component (vertex, edge, or face) on the target")
+        self.uv_space_radio_btn.setToolTip("Match points using matching UV coordinates (requires matching UV sets)")
 
         self.influence_label_1 = QLabel("Influence Association 1: ")
         self.influence_label_2 = QLabel("Influence Association 2: ")
@@ -691,9 +870,20 @@ class RiggingUtilityTool(QMainWindow):
         self.influence_combo_box_3 = QComboBox()
         self.influence_combo_box_3.addItems(ITEMS)
 
-        self.copyskin_form_layout.addRow(self.association_label ,self.closest_point_radio_btn)
-        self.copyskin_form_layout.addRow("" ,self.ray_cast_radio_btn)
-        self.copyskin_form_layout.addRow("" ,self.closest_component_radio_btn)
+        influence_tooltip = "Fallback method used to match influences (joints) between source and target skin clusters"
+        self.influence_combo_box_1.setToolTip(influence_tooltip)
+        self.influence_combo_box_2.setToolTip(influence_tooltip)
+        self.influence_combo_box_3.setToolTip(influence_tooltip)
+
+        self.association_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+
+        association_options_layout = QVBoxLayout()
+        association_options_layout.setSpacing(2)
+        association_options_layout.setContentsMargins(0, 0, 0, 0)
+        association_options_layout.addWidget(self.closest_point_radio_btn)
+        association_options_layout.addWidget(self.ray_cast_radio_btn)
+        association_options_layout.addWidget(self.closest_component_radio_btn)
+        self.copyskin_form_layout.addRow(self.association_label, association_options_layout)
 
         self.copyskin_form_layout.addRow(self.influence_label_1, self.influence_combo_box_1)
         self.copyskin_form_layout.addRow(self.influence_label_2, self.influence_combo_box_2)
@@ -711,8 +901,8 @@ class RiggingUtilityTool(QMainWindow):
         self.copy_skin_btn = self.primary_button("Copy Skin")
         self.copyskin_button_layout.addWidget(self.copy_skin_btn)
 
-        # set ToolTips 
-        self.create_connection_button.setToolTip("Copied skin To target Objects.")
+        # set ToolTips
+        self.copy_skin_btn.setToolTip("Copy skin weights from Source objects onto Target objects")
 
         copy_skin_group.setLayout(self.copyskin_form_layout)
         copyskin_tab_layout.addWidget(copy_skin_group)
@@ -730,10 +920,8 @@ class RiggingUtilityTool(QMainWindow):
         divider.setFrameShadow(QFrame.Sunken)
         return divider
 
-    def get_translations(self, loaded_selected_item):
+    def get_translations(self, current_object):
         # Return all translated names
-        # print(list_widget.text())
-        current_object = loaded_selected_item.text()
         custom_attributes = cmds.listAttr(current_object, keyable=True, unlocked=True)
         # print(custom_attributes)
 
@@ -751,15 +939,13 @@ class RiggingUtilityTool(QMainWindow):
 
         return attributes
 
-    def get_custom_items(self, loaded_selected_item):
-        # Return user-defined items which is manually created 
-        current_object = loaded_selected_item.text()
+    def get_custom_items(self, current_object):
+        # Return user-defined items which is manually created
         custom_attributes = cmds.listAttr(current_object, userDefined=True) or []
         return custom_attributes
-    
-    def get_all_items(self, loaded_selected_item):
+
+    def get_all_items(self, current_object):
         # Return all items
-        current_object = loaded_selected_item.text()
         custom_attributes = cmds.listAttr(current_object, keyable=True)
         return custom_attributes
     
@@ -789,6 +975,17 @@ class RiggingUtilityTool(QMainWindow):
         if not current_object_selected:
             return
         
+        # list items are stored as key -> value 
+        # partition gives three tuples of three elements 
+        key, arrow, value = current_object_selected.text().partition(" -> ")
+        # self.objects_key_value_dict = {key: value}
+        self.objects_key_value_dict[key] = value
+        # print(self.objects_key_value_dict)
+        if value == "root":
+            current_object_selected = key
+        else:
+            current_object_selected = value
+
         target_list_widget.clear()
 
         if driver_driven_combobox_value == "Translate":
@@ -811,8 +1008,7 @@ class RiggingUtilityTool(QMainWindow):
             return
 
         self.objects_key_value_dict = {}
-        # adding sleected objects 
-        
+        # adding the correct selected object to the objects_key_value_dict dictionary
         for obj in selected_objects:     
             target_suffix = obj.rsplit("|", 1)
             if len(target_suffix) == 2:
@@ -820,6 +1016,7 @@ class RiggingUtilityTool(QMainWindow):
             else:
                 self.objects_key_value_dict[obj] = "root"
         
+         # adding sleected objects 
         for key, value in self.objects_key_value_dict.items():
             # print(key, value)
             list_widget_object.addItem(f"{key} -> {value}")
@@ -1003,7 +1200,7 @@ class RiggingUtilityTool(QMainWindow):
             #     object_pairs.append((source_obj, matches))
 
             object_pairs = self.object_pairs_namematch(suffix, source_objects)
-            print(object_pairs)
+            # print(object_pairs)
 
             # connect constraints 
             for source_obj, target_obj in object_pairs:
@@ -1082,8 +1279,18 @@ class RiggingUtilityTool(QMainWindow):
         if not source_item or not target_item or not driver_item or not driven_item:
             return []
 
-        source_obj = source_item.text().strip()
-        target_obj = target_item.text().strip()
+        source_key, _, source_value = source_item.text().partition(" -> ")
+        if source_value == "root":
+            source_obj = source_key.strip()
+        else:
+            source_obj = source_value.strip()
+
+        target_key, _, target_value = target_item.text().partition(" -> ")
+        if target_value == "root":
+            target_obj = target_key.strip()
+        else:
+            target_obj = target_value.strip()
+
         driver_attr = driver_item.text().strip()
         driven_attr = driven_item.text().strip()
 
@@ -1306,7 +1513,7 @@ class RiggingUtilityTool(QMainWindow):
 
             suffix = self.suffix_lineedit.text().strip()
             object_pairs = self.object_pairs_namematch(suffix, source_objects)
-            print(object_pairs)
+            # print(object_pairs)
 
             for source_obj, target_obj in object_pairs:
                 if not self.has_skin_cluster(source_obj):
@@ -1496,7 +1703,6 @@ def show_window():
     maya_main_window = get_maya_main_window()
     my_window = RiggingUtilityTool(parent=maya_main_window)
     my_window.show()
-
 
 
 
