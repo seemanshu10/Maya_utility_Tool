@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
                                QLabel, QListWidget, QListWidgetItem, QHBoxLayout, QVBoxLayout,
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
-                               QCheckBox, QFormLayout, QStyle, QLineEdit, QFrame)
+                               QCheckBox, QFormLayout, QLineEdit, QFrame)
 
 from PySide2.QtCore import Qt, Slot
 
@@ -333,18 +333,18 @@ class RiggingUtilityTool(QMainWindow):
         self.source_obj_list.setToolTip("Objects that will drive the constraint / connection")
         self.target_obj_list.setToolTip("Objects that will receive the constraint / connection")
 
-        self.source_move_up_btn = QPushButton()
-        self.source_move_up_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
+        self.source_move_up_btn = QPushButton("↑")
+        self.source_move_up_btn.setFixedSize(25, 25)
         self.source_move_up_btn.setToolTip("Move selected source item up")
-        self.source_move_down_btn = QPushButton()
-        self.source_move_down_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
+        self.source_move_down_btn = QPushButton("↓")
+        self.source_move_down_btn.setFixedSize(25, 25)
         self.source_move_down_btn.setToolTip("Move selected source item down")
 
-        self.target_move_up_btn = QPushButton()
-        self.target_move_up_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
+        self.target_move_up_btn = QPushButton("↑")
+        self.target_move_up_btn.setFixedSize(25, 25)
         self.target_move_up_btn.setToolTip("Move selected target item up")
-        self.target_move_down_btn = QPushButton()
-        self.target_move_down_btn.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
+        self.target_move_down_btn = QPushButton("↓")
+        self.target_move_down_btn.setFixedSize(25, 25)
         self.target_move_down_btn.setToolTip("Move selected target item down")
 
         # Source Objects Side
@@ -702,7 +702,7 @@ class RiggingUtilityTool(QMainWindow):
         self.reset_connection_axes_button.setFixedSize(80, 25)
 
         # All connection Atrributes List
-        self.driver_driven_group = QGroupBox("Driver / Driven Attributes")
+        self.driver_driven_group = QGroupBox("Custom Attributes Connection")
         self.driver_driven_group.setCheckable(True)
         self.driver_driven_group.setChecked(False)
         self.driver_driven_group.setToolTip("Enable to connect custom attributes instead of / in addition to the axes above")
@@ -959,13 +959,14 @@ class RiggingUtilityTool(QMainWindow):
         custom_attributes = cmds.listAttr(current_object, keyable=True)
         return custom_attributes
     
-    def object_pairs_namematch(self, suffix, source_objects):
+    def object_pairs_namematch(self, suffix, source_items):
         # suffix = suffix_lineedit.text().strip()
         object_pairs = []
-        for source_obj in source_objects:
-            full_path = cmds.ls(source_obj, long=True)[0]
+        for source_item in source_items:
+            full_path = cmds.ls(source_item, long=True)[0]
+            
             top_level_group = full_path.split("|")[1]
-            source_short_name = source_obj.split("|")[-1]
+            source_short_name = source_item.split("|")[-1]
             source_base_name = source_short_name.rsplit("_", 1)[0]
             target_name = f"{source_base_name}{suffix}"
             # print(target_name)
@@ -976,7 +977,7 @@ class RiggingUtilityTool(QMainWindow):
                     target_obj = descendant
                     # print(target_obj)
 
-            object_pairs.append((source_obj, target_obj))
+            object_pairs.append((source_item, target_obj))
         return object_pairs
 
     @Slot()
@@ -1039,7 +1040,6 @@ class RiggingUtilityTool(QMainWindow):
                 return
             key, arrow, value = current_object_selected.text().partition(" -> ")
             self.objects_key_value_dict[key] = value
-            # target_obj = key if value == "root" else value
 
             if value == "root":
                 current_object_selected = key
@@ -1063,15 +1063,15 @@ class RiggingUtilityTool(QMainWindow):
     @Slot()
     def load_selected_objects(self, list_widget_object):
         # Get selected objects in Maya
-        selected_objects = cmds.ls(selection=True) or []
-        if not selected_objects:
+        selected_items = cmds.ls(selection=True) or []
+        if not selected_items:
             cmds.warning("No objects selected in Maya.")
             self.set_status_message("ERROR: No objects selected in Maya.")
             return
 
         self.objects_key_value_dict = {}
         # adding the correct selected object to the objects_key_value_dict dictionary
-        for obj in selected_objects:     
+        for obj in selected_items:     
             target_suffix = obj.rsplit("|", 1)
             if len(target_suffix) == 2:
                 self.objects_key_value_dict[target_suffix[1]] = obj
@@ -1171,9 +1171,9 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def create_constraints(self):
-        source_objects = self.get_items_from_list(self.source_obj_list)
+        source_items = self.get_items_from_list(self.source_obj_list)
         target_objects = self.get_items_from_list(self.target_obj_list)
-        print(source_objects)
+        # print(source_items)
         # print(target_objects)
 
         constraint_type = self.constraint_type_combobox.currentIndex()
@@ -1216,56 +1216,45 @@ class RiggingUtilityTool(QMainWindow):
         # match by order 
         if self.radio_button_order.isChecked():
 
-            if not source_objects or not target_objects:
+            if not source_items or not target_objects:
                 print("Source and Target object lists need to be populated.")
                 self.set_status_message("ERROR: Source and Target object lists need to be populated.")
 
-                if self.radio_button_order.isChecked() and len(source_objects) != len(target_objects):
-                    cmds.warning("Source and Target lists must contain the same number of objects.")
-                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
-                    return
+            if len(source_items) != len(target_objects):
+                cmds.warning("Source and Target lists must contain the same number of objects.")
+                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                return
 
-            for i in range(len(source_objects)):
+            for source_item in range(len(source_items)):
                 if constraint_type == 0:
-                    cmds.parentConstraint(source_objects[i], target_objects[i], mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
+                    cmds.parentConstraint(
+                        source_items[source_item], 
+                        target_objects[source_item], 
+                        mo=offset_type, 
+                        skipTranslate=skip_translate, 
+                        skipRotate=skip_rotate
+                        )
                 elif constraint_type == 1:
-                    cmds.pointConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_translate)
+                    cmds.pointConstraint(source_items[source_item], target_objects[source_item], mo=offset_type, skip=skip_translate)
                 if constraint_type == 2:
-                    cmds.orientConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_rotate)
+                    cmds.orientConstraint(source_items[source_item], target_objects[source_item], mo=offset_type, skip=skip_rotate)
                 if constraint_type == 3:
-                    cmds.scaleConstraint(source_objects[i], target_objects[i], mo=offset_type, skip=skip_scale) 
+                    cmds.scaleConstraint(source_items[source_item], target_objects[source_item], mo=offset_type, skip=skip_scale) 
 
         # match by name 
         else:
             # Only the source list is Checked if it is filled
-            if not source_objects:
+            if not source_items:
                 cmds.warning("Source object list needs to be populated.")
                 self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
             
-            suffix = self.suffix_lineedit.text().strip()
-            # object_pairs = []
-            # for source_obj in source_objects:
-            #     full_path = cmds.ls(source_obj, long=True)[0]
-            #     top_grp_hierarchy = full_path.split("|")[1]
-            #     target_object = source_obj.split("|")[-1]
-            #     target_object_suffix = target_object.rsplit("_", 1)[0]
-            #     target_name = f"{target_object_suffix}{suffix}"
-            #     # print(target_name)
-            #     all_children = cmds.listRelatives(top_grp_hierarchy, ad=True, f=True) or []
-            #     matches = []
-            #     for x in all_children:
-            #         if x.endswith("|" + target_name):
-            #             matches= x
-            #             # print(matches)
-
-            #     object_pairs.append((source_obj, matches))
-
-            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            suffix_name = self.suffix_lineedit.text().strip() 
+            object_pairs = self.object_pairs_namematch(suffix_name, source_items)
             # print(object_pairs)
 
             # connect constraints 
-            for source_obj, target_obj in object_pairs:
+            for source_item, target_obj in object_pairs:
                 # target_suffix = obj.rsplit("_", 1)[0]
                 # target_name = f"{target_suffix}{suffix}"
 
@@ -1275,20 +1264,20 @@ class RiggingUtilityTool(QMainWindow):
                 # target_dict.append(target_name)
                 # print(target_suffix)
                 if constraint_type == 0:
-                    cmds.parentConstraint(source_obj, target_obj, mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
+                    cmds.parentConstraint(source_item, target_obj, mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
                 elif constraint_type == 1:
-                    cmds.pointConstraint(source_obj, target_obj, mo=offset_type, skip=skip_translate)
+                    cmds.pointConstraint(source_item, target_obj, mo=offset_type, skip=skip_translate)
                 if constraint_type == 2:
-                    cmds.orientConstraint(source_obj, target_obj, mo=offset_type, skip=skip_rotate)
+                    cmds.orientConstraint(source_item, target_obj, mo=offset_type, skip=skip_rotate)
                 if constraint_type == 3:
-                    cmds.scaleConstraint(source_obj, target_obj, mo=offset_type, skip=skip_scale)  
+                    cmds.scaleConstraint(source_item, target_obj, mo=offset_type, skip=skip_scale)  
 
         self.set_status_message("Constraints completed")
             # print(target_dict)
 
-    def connect_attrs(self, source_obj, target_obj, connection_attrs):
-        if not cmds.objExists(source_obj):
-            cmds.warning("Source object {} does not exist.".format(source_obj))
+    def connect_attrs(self, source_item, target_obj, connection_attrs):
+        if not cmds.objExists(source_item):
+            cmds.warning("Source object {} does not exist.".format(source_item))
             return
         if not cmds.objExists(target_obj):
             cmds.warning("Target object {} does not exist.".format(target_obj))
@@ -1299,10 +1288,10 @@ class RiggingUtilityTool(QMainWindow):
             if not attr:
                 continue
 
-            source_attr = "{}.{}".format(source_obj, attr)
+            source_attr = "{}.{}".format(source_item, attr)
             target_attr = "{}.{}".format(target_obj, attr)
             if not cmds.objExists(source_attr):
-                cmds.warning("Attribute {} does not exist on {}.".format(attr, source_obj))
+                cmds.warning("Attribute {} does not exist on {}.".format(attr, source_item))
                 continue
             if not cmds.objExists(target_attr):
                 cmds.warning("Attribute {} does not exist on {}.".format(attr, target_obj))
@@ -1310,20 +1299,20 @@ class RiggingUtilityTool(QMainWindow):
             cmds.connectAttr(source_attr, target_attr, force=True)
             connected = True
 
-        print("Connected {} -> {}".format(source_obj, target_obj))
+        print("Connected {} -> {}".format(source_item, target_obj))
 
-    def connect_selected_custom_attribute(self, source_obj, target_obj, driver_attr, driven_attr):
-        if not cmds.objExists(source_obj):
-            cmds.warning("Source object {} does not exist.".format(source_obj))
+    def connect_selected_custom_attribute(self, source_item, target_obj, driver_attr, driven_attr):
+        if not cmds.objExists(source_item):
+            cmds.warning("Source object {} does not exist.".format(source_item))
             return
         if not cmds.objExists(target_obj):
             cmds.warning("Target object {} does not exist.".format(target_obj))
             return
 
-        source_attr = "{}.{}".format(source_obj, driver_attr)
+        source_attr = "{}.{}".format(source_item, driver_attr)
         target_attr = "{}.{}".format(target_obj, driven_attr)
         if not cmds.objExists(source_attr):
-            cmds.warning("Attribute {} does not exist on {}.".format(driver_attr, source_obj))
+            cmds.warning("Attribute {} does not exist on {}.".format(driver_attr, source_item))
             return
         if not cmds.objExists(target_attr):
             cmds.warning("Attribute {} does not exist on {}.".format(driven_attr, target_obj))
@@ -1347,10 +1336,10 @@ class RiggingUtilityTool(QMainWindow):
             source_obj = source_value.strip()
 
         if self.radio_button_name.isChecked():
-            suffix = self.suffix_lineedit.text().strip()
-            if not suffix:
+            suffix_name = self.suffix_lineedit.text().strip()
+            if not suffix_name:
                 return []
-            object_pairs = self.object_pairs_namematch(suffix, [source_obj])
+            object_pairs = self.object_pairs_namematch(suffix_name, [source_obj])
             if object_pairs:
                 target_obj = object_pairs[0][1]
             else:
@@ -1379,7 +1368,7 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def create_connections(self):
-        source_objects = self.get_items_from_list(self.source_obj_list)
+        source_items = self.get_items_from_list(self.source_obj_list)
         target_objects = self.get_items_from_list(self.target_obj_list)
 
         if self.connection_axes_group.isChecked():
@@ -1440,17 +1429,17 @@ class RiggingUtilityTool(QMainWindow):
 
         # match by order
         if self.radio_button_order.isChecked():
-            if not source_objects or not target_objects:
+            if not source_items or not target_objects:
                 print("Source and Target object lists need to be populated.")
                 self.set_status_message("ERROR: Source and Target object lists need to be populated.")
                 return
 
-            if len(source_objects) != len(target_objects):
+            if len(source_items) != len(target_objects):
                 cmds.warning("Source and Target lists must contain the same number of objects.")
                 self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                 return
 
-            for i, source_obj in enumerate(source_objects):
+            for i, source_obj in enumerate(source_items):
                 target_obj = target_objects[i]
                 if connection_attrs:
                     self.connect_attrs(source_obj, target_obj, connection_attrs)
@@ -1459,13 +1448,13 @@ class RiggingUtilityTool(QMainWindow):
 
         # match by name
         else:
-            if not source_objects:
+            if not source_items:
                 cmds.warning("Source object list needs to be populated.")
                 self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
 
-            suffix = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            suffix_name = self.suffix_lineedit.text().strip()
+            object_pairs = self.object_pairs_namematch(suffix_name, source_items)
             # print(object_pairs)
 
             for source_obj, target_obj in object_pairs:
@@ -1587,8 +1576,8 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
 
-            suffix = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            suffix_name = self.suffix_lineedit.text().strip()
+            object_pairs = self.object_pairs_namematch(suffix_name, source_objects)
             # print(object_pairs)
 
             for source_obj, target_obj in object_pairs:
@@ -1598,7 +1587,7 @@ class RiggingUtilityTool(QMainWindow):
                     continue
 
                 target_suffix = source_obj.rsplit("_", 1)[0]
-                target_obj = f"{target_suffix}{suffix}"
+                target_obj = f"{target_suffix}{suffix_name}"
 
                 if not cmds.objExists(target_obj):
                     cmds.warning("{} does not exist.".format(target_obj))
@@ -1681,7 +1670,7 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
 
-            suffix = self.suffix_lineedit.text().strip()
+            suffix_name = self.suffix_lineedit.text().strip()
 
             # for source_obj in source_objects:
             #     target_prefix = source_obj.rsplit("_", 1)[0]
@@ -1704,7 +1693,7 @@ class RiggingUtilityTool(QMainWindow):
 
             #     object_pairs.append((source_obj, matches))
 
-            object_pairs = self.object_pairs_namematch(suffix, source_objects)
+            object_pairs = self.object_pairs_namematch(suffix_name, source_objects)
             print(object_pairs)
             
         # Disconnect connections

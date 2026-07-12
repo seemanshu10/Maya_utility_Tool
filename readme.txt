@@ -61,3 +61,8 @@ but beacuase you are giving me arguments that i dont know to handle .
 so that is why i will wrap the function call with argument so that qt call directly call that lambda which will remove that issue qt 
 
 Qt expects a callable that it can invoke when the signal is emitted. If I need to pass my own arguments to the function, I wrap the call in a lambda. Qt calls the lambda, and the lambda then calls my function with the required arguments.
+
+
+
+
+Praveen Tanvi - Contact product team lead (lamp team)
