@@ -20,7 +20,7 @@ class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Multi-Object Rigging Toolkit")
-        self.setGeometry(50, 100, 500, 900)
+        self.setGeometry(200, 100, 600, 900)
         self.initUI()
 
     def initUI(self):
@@ -807,15 +807,16 @@ class RiggingUtilityTool(QMainWindow):
         #     lambda: self.populate_custom_attributes(self.target_obj_list, self.all_driven_listwidget)
         # )
 
+        
         self.source_obj_list.itemSelectionChanged.connect(
-            lambda: self.update_list(
+            lambda: self.update_driver_driven_listwidget_order(
                 self.source_obj_list,
                 self.all_drivers_listwidget,
                 self.driver_combobox.currentText(),
             )
         )
         self.driver_combobox.currentTextChanged.connect(
-            lambda: self.update_list(
+            lambda: self.update_driver_driven_listwidget_order(
                 self.source_obj_list,
                 self.all_drivers_listwidget,
                 self.driver_combobox.currentText(),
@@ -823,21 +824,30 @@ class RiggingUtilityTool(QMainWindow):
         )
 
         self.target_obj_list.itemSelectionChanged.connect(
-            lambda: self.update_list(
+            lambda: self.update_driver_driven_listwidget_order(
                 self.target_obj_list,
                 self.all_driven_listwidget,
                 self.driven_combobox.currentText(),
             )
         )
         self.driven_combobox.currentTextChanged.connect(
-            lambda: self.update_list(
+            lambda: self.update_driver_driven_listwidget_order(
                 self.target_obj_list,
                 self.all_driven_listwidget,
                 self.driven_combobox.currentText(),
             )
         )
 
-        # if self.radio_button_name.isChecked():
+        # self.target_obj_list.itemSelectionChanged.connect(self.update_driver_driven_listwidget_name)
+        # self.driven_combobox.currentTextChanged.connect(self.update_driver_driven_listwidget_name)
+
+        # Name-match mode disables target_obj_list, so the driven list must instead
+        # react to the source selection, the suffix, and the driven attribute
+        # combobox used to resolve the target.
+        self.source_obj_list.itemSelectionChanged.connect(self.update_driver_driven_listwidget_name)
+        self.suffix_lineedit.textChanged.connect(self.update_driver_driven_listwidget_name)
+        self.radio_button_name.toggled.connect(self.update_driver_driven_listwidget_name)
+        self.driven_combobox.currentTextChanged.connect(self.update_driver_driven_listwidget_name)
 
     def copyskin_tab_ui(self):
 
@@ -954,23 +964,23 @@ class RiggingUtilityTool(QMainWindow):
         object_pairs = []
         for source_obj in source_objects:
             full_path = cmds.ls(source_obj, long=True)[0]
-            top_grp_hierarchy = full_path.split("|")[1]
-            target_object = source_obj.split("|")[-1]
-            target_object_suffix = target_object.rsplit("_", 1)[0]
-            target_name = f"{target_object_suffix}{suffix}"
+            top_level_group = full_path.split("|")[1]
+            source_short_name = source_obj.split("|")[-1]
+            source_base_name = source_short_name.rsplit("_", 1)[0]
+            target_name = f"{source_base_name}{suffix}"
             # print(target_name)
-            all_children = cmds.listRelatives(top_grp_hierarchy, ad=True, f=True) or []
-            matches = []
-            for x in all_children:
-                if x.endswith("|" + target_name):
-                    matches= x
-                    # print(matches)
+            all_descendants = cmds.listRelatives(top_level_group, ad=True, f=True) or []
+            target_obj = []
+            for descendant in all_descendants:
+                if descendant.endswith("|" + target_name):
+                    target_obj = descendant
+                    # print(target_obj)
 
-            object_pairs.append((source_obj, matches))
+            object_pairs.append((source_obj, target_obj))
         return object_pairs
 
     @Slot()
-    def update_list(self, list_widget, target_list_widget, driver_driven_combobox_value):
+    def update_driver_driven_listwidget_order(self, list_widget, target_list_widget, driver_driven_combobox_value):
         current_object_selected = list_widget.currentItem()
         if not current_object_selected:
             return
@@ -978,7 +988,6 @@ class RiggingUtilityTool(QMainWindow):
         # list items are stored as key -> value 
         # partition gives three tuples of three elements 
         key, arrow, value = current_object_selected.text().partition(" -> ")
-        # self.objects_key_value_dict = {key: value}
         self.objects_key_value_dict[key] = value
         # print(self.objects_key_value_dict)
         if value == "root":
@@ -997,6 +1006,59 @@ class RiggingUtilityTool(QMainWindow):
         else:
             items = []
         target_list_widget.addItems(items)
+
+    @Slot()
+    def update_driver_driven_listwidget_name(self):
+        if self.radio_button_name.isChecked():
+            current_object_selected = self.source_obj_list.currentItem()
+            if not current_object_selected:
+                return
+            key, arrow, value = current_object_selected.text().partition(" -> ")
+
+            if value == "root":
+                current_object_selected = key
+            else:
+                current_object_selected = value
+
+            suffix = self.suffix_lineedit.text().strip()
+            self.all_driven_listwidget.clear()
+            if not suffix:
+                return
+
+            object_pairs = self.object_pairs_namematch(suffix, [current_object_selected])
+            if object_pairs:
+                target_obj = object_pairs[0][1]
+            else:
+                target_obj = []
+            if not target_obj:
+                self.set_status_message("No matching target object found for suffix.")
+                return
+        else:
+            current_object_selected = self.target_obj_list.currentItem()
+            if not current_object_selected:
+                return
+            key, arrow, value = current_object_selected.text().partition(" -> ")
+            self.objects_key_value_dict[key] = value
+            # target_obj = key if value == "root" else value
+
+            if value == "root":
+                current_object_selected = key
+            else:
+                current_object_selected = value
+
+            # target_list_widget.clear()
+            self.all_driven_listwidget.clear()
+
+        driven_combobox_value = self.driven_combobox.currentText()
+        if driven_combobox_value == "Translate":
+            items = self.get_translations(target_obj)
+        elif driven_combobox_value == "Custom":
+            items = self.get_custom_items(target_obj)
+        elif driven_combobox_value == "All":
+            items = self.get_all_items(target_obj)
+        else:
+            items = []
+        self.all_driven_listwidget.addItems(items)
 
     @Slot()
     def load_selected_objects(self, list_widget_object):
@@ -1024,7 +1086,7 @@ class RiggingUtilityTool(QMainWindow):
         print(f"Added Selected Objects in object ListBox ")
         self.set_status_message("Added selected objects to the list.")
 
-        print(self.objects_key_value_dict)
+        # print(self.objects_key_value_dict)
 
     @Slot()
     def radio_buttondisable(self, checked):
@@ -1272,11 +1334,10 @@ class RiggingUtilityTool(QMainWindow):
 
     def get_selected_custom_attributes(self):
         source_item = self.source_obj_list.currentItem()
-        target_item = self.target_obj_list.currentItem()
         driver_item = self.all_drivers_listwidget.currentItem()
         driven_item = self.all_driven_listwidget.currentItem()
 
-        if not source_item or not target_item or not driver_item or not driven_item:
+        if not source_item or not driver_item or not driven_item:
             return []
 
         source_key, _, source_value = source_item.text().partition(" -> ")
@@ -1285,11 +1346,26 @@ class RiggingUtilityTool(QMainWindow):
         else:
             source_obj = source_value.strip()
 
-        target_key, _, target_value = target_item.text().partition(" -> ")
-        if target_value == "root":
-            target_obj = target_key.strip()
+        if self.radio_button_name.isChecked():
+            suffix = self.suffix_lineedit.text().strip()
+            if not suffix:
+                return []
+            object_pairs = self.object_pairs_namematch(suffix, [source_obj])
+            if object_pairs:
+                target_obj = object_pairs[0][1]
+            else:
+                target_obj = []
+            if not target_obj:
+                return []
         else:
-            target_obj = target_value.strip()
+            target_item = self.target_obj_list.currentItem()
+            if not target_item:
+                return []
+            target_key, _, target_value = target_item.text().partition(" -> ")
+            if target_value == "root":
+                target_obj = target_key.strip()
+            else:
+                target_obj = target_value.strip()
 
         driver_attr = driver_item.text().strip()
         driven_attr = driven_item.text().strip()
