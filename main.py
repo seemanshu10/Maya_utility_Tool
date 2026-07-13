@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
                                QLabel, QListWidget, QListWidgetItem, QHBoxLayout, QVBoxLayout,
                                QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
-                               QCheckBox, QFormLayout, QLineEdit, QFrame)
+                               QCheckBox, QFormLayout, QLineEdit, QFrame, QMessageBox)
 
 from PySide2.QtCore import Qt, Slot
 
@@ -259,42 +259,7 @@ class RiggingUtilityTool(QMainWindow):
         """)
 
     def set_status_message(self, message):
-        
         self.status_bar.showMessage(message, timeout=3000)
-        
-        # self.status_bar.setStyleSheet("""
-        #     QStatusBar{
-        #         background: #007FFF;
-        #         border: 1px solid grey;
-        #         color: black;
-        #         font-size: 10px;
-        #         font-style: italic;
-        #         border-radius: 2px;
-        #     }
-        # """)
-        # if "ERROR" not in message:
-        #     self.status_bar.setStyleSheet("""
-        #         QStatusBar{
-        #             background: #007FFF;
-        #             border: 1px solid grey;
-        #             color: black;
-        #             font-size: 10px;
-        #             font-style: italic;
-        #             border-radius: 2px;
-        #         }
-        #     """)
-        # else:
-        #     self.status_bar.setStyleSheet("""
-        #         QStatusBar{
-        #             background: red;
-        #             border: 1px solid grey;
-        #             color: black;
-        #             font-size: 10px;
-        #             font-style: italic;
-        #             border-radius: 2px;
-        #         }
-        #     """)
-
         print(message)
         
     def primary_button(self, text):
@@ -303,7 +268,6 @@ class RiggingUtilityTool(QMainWindow):
         return new_push_button
 
     def main_ui(self):
-
         # Add Labels to the Grid Layout 
         self.objects_grid_layout = QGridLayout()
         source_obj_label = QLabel("Source Objects")
@@ -528,7 +492,7 @@ class RiggingUtilityTool(QMainWindow):
         self.first_tab.setLayout(constraint_main_layout)  
 
         # creation constraint Axes Group 
-        constraint_axes_group = QGroupBox("Constraint Axes ")
+        constraint_axes_group = QGroupBox("Constraint Axes Attributes")
         constraint_axes_group.setStyleSheet("""
             QGroupBox
                 {
@@ -632,18 +596,30 @@ class RiggingUtilityTool(QMainWindow):
 
 
         # signals for constraints 
-        self.create_constraint_btn.clicked.connect(self.create_constraints)
         self.translate_all_checkbox_constraint.toggled.connect(self.enable_disable_translate_constraints)
         self.rotate_all_checkbox_constraint.toggled.connect(self.enable_disable_rotate_constraints)
         self.scale_all_checkbox_constraint.toggled.connect(self.enable_disable_scale_constraints)
         self.reset_constraint.clicked.connect(self.reset_constraint_options)
-        self.disconnect_constraint_btn.clicked.connect(self.delete_constraints)
+        # self.disconnect_constraint_btn.clicked.connect(self.delete_constraints)
+        # self.create_constraint_btn.clicked.connect(self.create_constraints)
+
+        self.create_constraint_btn.clicked.connect(
+            lambda: self.dialog_message_box(
+                "Create constraints confirmation", 
+                "Are you sure to create the constraints ?",
+                self.create_constraints))
+
+        self.disconnect_constraint_btn.clicked.connect(
+            lambda:self.dialog_message_box(
+                "Delete constraints confirmation",
+                "Are you sure to delete the constraints ?", 
+                self.delete_constraints))
 
     def connection_tab_ui(self):
         # create The connection tab
         connection_tab_layout = QVBoxLayout()
         # creation connection Axes Group 
-        self.connection_axes_group = QGroupBox("Connection Axes ")
+        self.connection_axes_group = QGroupBox("Connection Axes Attributes")
         self.connection_axes_group.setCheckable(True)
         self.connection_axes_group.setChecked(True)
         self.connection_axes_group.setToolTip("Uncheck to skip axis connections entirely")
@@ -702,7 +678,7 @@ class RiggingUtilityTool(QMainWindow):
         self.reset_connection_axes_button.setFixedSize(80, 25)
 
         # All connection Atrributes List
-        self.driver_driven_group = QGroupBox("Custom Attributes Connection")
+        self.driver_driven_group = QGroupBox("Custom Connection Attributes")
         self.driver_driven_group.setCheckable(True)
         self.driver_driven_group.setChecked(False)
         self.driver_driven_group.setToolTip("Enable to connect custom attributes instead of / in addition to the axes above")
@@ -718,12 +694,10 @@ class RiggingUtilityTool(QMainWindow):
         
         self.driver_combobox.addItem("Default")
         self.driver_combobox.addItem("Custom")
-        self.driver_combobox.addItem("Translate")
         self.driver_combobox.addItem("All")
 
         self.driven_combobox.addItem("Default")
         self.driven_combobox.addItem("Custom")
-        self.driven_combobox.addItem("Translate")
         self.driven_combobox.addItem("All")
 
         # self.add_attributes_button = QPushButton()
@@ -793,9 +767,7 @@ class RiggingUtilityTool(QMainWindow):
         self.translate_all_checkbox_connection.toggled.connect(self.enable_disable_translate_connection)
         self.rotate_all_checkbox_connection.toggled.connect(self.enable_disable_rotate_connection)
         self.scale_all_checkbox_connection.toggled.connect(self.enable_disable_scale_connection)
-        self.create_connection_button.clicked.connect(self.create_connections)
         self.reset_connection_axes_button.clicked.connect(self.reset_connection_options)
-        self.disconnect_connection_button.clicked.connect(self.disconnect_connections)
         self.driver_driven_group.toggled.connect(self.driver_driven_connection_axes_enable)
         self.connection_axes_group.toggled.connect(self.connection_axes_enabled)
 
@@ -807,7 +779,6 @@ class RiggingUtilityTool(QMainWindow):
         #     lambda: self.populate_custom_attributes(self.target_obj_list, self.all_driven_listwidget)
         # )
 
-        
         self.source_obj_list.itemSelectionChanged.connect(
             lambda: self.update_driver_driven_listwidget_order(
                 self.source_obj_list,
@@ -848,6 +819,18 @@ class RiggingUtilityTool(QMainWindow):
         self.suffix_lineedit.textChanged.connect(self.update_driver_driven_listwidget_name)
         self.radio_button_name.toggled.connect(self.update_driver_driven_listwidget_name)
         self.driven_combobox.currentTextChanged.connect(self.update_driver_driven_listwidget_name)
+
+        self.create_connection_button.clicked.connect(
+            lambda: self.dialog_message_box(
+                "Create connections confirmation", 
+                "Are you sure to create the connections ?",
+                self.create_connections))
+
+        self.disconnect_connection_button.clicked.connect(
+            lambda:self.dialog_message_box(
+                "Delete connections confirmation",
+                "Are you sure to delete the connections ?", 
+                self.disconnect_connections))
 
     def copyskin_tab_ui(self):
 
@@ -922,8 +905,14 @@ class RiggingUtilityTool(QMainWindow):
         self.third_tab.setLayout(copyskin_tab_layout)
 
         # signals for copy Skin button 
-        self.copy_skin_btn.clicked.connect(self.copy_skins)
-    
+        # self.copy_skin_btn.clicked.connect(self.copy_skins)
+
+        self.copy_skin_btn.clicked.connect(
+            lambda: self.dialog_message_box(
+                "Copy Skin Confirmation", 
+                "Are you sure you want to copy the weights?",
+                self.copy_skins))
+
     def create_divider_for_ui(self, linetype):
         divider = QFrame()
         divider.setFrameShape(linetype)
@@ -979,6 +968,19 @@ class RiggingUtilityTool(QMainWindow):
 
             object_pairs.append((source_item, target_obj))
         return object_pairs
+    
+    @Slot()
+    def dialog_message_box(self, dialog_box_title, dialog_box_check_message, dialog_box_slot):
+        response = QMessageBox.question(
+            self,
+            dialog_box_title,
+            dialog_box_check_message
+        )
+        if response == QMessageBox.Yes:
+            # main function called after confirmation 
+            dialog_box_slot()
+        else:
+            self.set_status_message("User Canceled the operation")
 
     @Slot()
     def update_driver_driven_listwidget_order(self, list_widget, target_list_widget, driver_driven_combobox_value):
@@ -997,8 +999,7 @@ class RiggingUtilityTool(QMainWindow):
             current_object_selected = value
 
         target_list_widget.clear()
-
-        if driver_driven_combobox_value == "Translate":
+        if driver_driven_combobox_value == "Default":
             items = self.get_translations(current_object_selected)
         elif driver_driven_combobox_value == "Custom":
             items = self.get_custom_items(current_object_selected)
@@ -1050,7 +1051,7 @@ class RiggingUtilityTool(QMainWindow):
             self.all_driven_listwidget.clear()
 
         driven_combobox_value = self.driven_combobox.currentText()
-        if driven_combobox_value == "Translate":
+        if driven_combobox_value == "Default":
             items = self.get_translations(target_obj)
         elif driven_combobox_value == "Custom":
             items = self.get_custom_items(target_obj)
@@ -1063,31 +1064,32 @@ class RiggingUtilityTool(QMainWindow):
     @Slot()
     def load_selected_objects(self, list_widget_object):
         # Get selected objects in Maya
-        selected_items = cmds.ls(selection=True) or []
+        selected_items = cmds.ls(selection=True, long=True) or []
         if not selected_items:
             cmds.warning("No objects selected in Maya.")
             self.set_status_message("ERROR: No objects selected in Maya.")
             return
 
+        #   objects already present in the list should not be added again
+        existing_objects = set(self.get_items_from_list(list_widget_object))
         self.objects_key_value_dict = {}
         # adding the correct selected object to the objects_key_value_dict dictionary
-        for obj in selected_items:     
-            target_suffix = obj.rsplit("|", 1)
+        for selected_item in selected_items:
+            if selected_item in existing_objects:
+                print(f"Selected item {selected_item} is already added.")
+                continue
+
+            target_suffix = selected_item.rsplit("|", 1)
             if len(target_suffix) == 2:
-                self.objects_key_value_dict[target_suffix[1]] = obj
+                self.objects_key_value_dict[target_suffix[1]] = selected_item
             else:
-                self.objects_key_value_dict[obj] = "root"
+                self.objects_key_value_dict[selected_item] = "root"
         
-         # adding sleected objects 
+         # adding sleected objects
         for key, value in self.objects_key_value_dict.items():
             # print(key, value)
             list_widget_object.addItem(f"{key} -> {value}")
-
-        print(f"Added Selected Objects in object ListBox ")
-        self.set_status_message("Added selected objects to the list.")
-
-        # print(self.objects_key_value_dict)
-
+    
     @Slot()
     def radio_buttondisable(self, checked):
         if checked:
