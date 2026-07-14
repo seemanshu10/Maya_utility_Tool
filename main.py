@@ -683,10 +683,10 @@ class RiggingUtilityTool(QMainWindow):
         self.driver_driven_group.setChecked(False)
         self.driver_driven_group.setToolTip("Enable to connect custom attributes instead of / in addition to the axes above")
         self.driver_driven_layout = QGridLayout()
-        self.all_driver_label = QLabel("Driver Attribute")
+        self.all_driver_label = QLabel("Driver Attribute Type")
         self.driver_combobox = QComboBox()
         self.all_drivers_listwidget = QListWidget()
-        self.all_driven_label = QLabel("Driven Attribute")
+        self.all_driven_label = QLabel("Driven Attribute Type")
         self.driven_combobox = QComboBox()
         self.all_driven_listwidget = QListWidget()
         self.all_drivers_listwidget.setToolTip("Attributes available on the Source objects")
@@ -808,9 +808,6 @@ class RiggingUtilityTool(QMainWindow):
                 self.driven_combobox.currentText(),
             )
         )
-
-        # self.target_obj_list.itemSelectionChanged.connect(self.update_driver_driven_listwidget_name)
-        # self.driven_combobox.currentTextChanged.connect(self.update_driver_driven_listwidget_name)
 
         # Name-match mode disables target_obj_list, so the driven list must instead
         # react to the source selection, the suffix, and the driven attribute
@@ -992,11 +989,7 @@ class RiggingUtilityTool(QMainWindow):
         # partition gives three tuples of three elements 
         key, arrow, value = current_object_selected.text().partition(" -> ")
         self.objects_key_value_dict[key] = value
-        # print(self.objects_key_value_dict)
-        if value == "root":
-            current_object_selected = key
-        else:
-            current_object_selected = value
+        current_object_selected = value
 
         target_list_widget.clear()
         if driver_driven_combobox_value == "Default":
@@ -1016,11 +1009,7 @@ class RiggingUtilityTool(QMainWindow):
             if not current_object_selected:
                 return
             key, arrow, value = current_object_selected.text().partition(" -> ")
-
-            if value == "root":
-                current_object_selected = key
-            else:
-                current_object_selected = value
+            current_object_selected = value
 
             suffix = self.suffix_lineedit.text().strip()
             self.all_driven_listwidget.clear()
@@ -1041,11 +1030,8 @@ class RiggingUtilityTool(QMainWindow):
                 return
             key, arrow, value = current_object_selected.text().partition(" -> ")
             self.objects_key_value_dict[key] = value
-
-            if value == "root":
-                current_object_selected = key
-            else:
-                current_object_selected = value
+            current_object_selected = value
+            target_obj = current_object_selected
 
             # target_list_widget.clear()
             self.all_driven_listwidget.clear()
@@ -1080,10 +1066,7 @@ class RiggingUtilityTool(QMainWindow):
                 continue
 
             target_suffix = selected_item.rsplit("|", 1)
-            if len(target_suffix) == 2:
-                self.objects_key_value_dict[target_suffix[1]] = selected_item
-            else:
-                self.objects_key_value_dict[selected_item] = "root"
+            self.objects_key_value_dict[target_suffix[1]] = selected_item
         
          # adding sleected objects
         for key, value in self.objects_key_value_dict.items():
@@ -1237,11 +1220,26 @@ class RiggingUtilityTool(QMainWindow):
                         skipRotate=skip_rotate
                         )
                 elif constraint_type == 1:
-                    cmds.pointConstraint(source_items[source_item], target_objects[source_item], mo=offset_type, skip=skip_translate)
+                    cmds.pointConstraint(
+                        source_items[source_item], 
+                        target_objects[source_item], 
+                        mo=offset_type, 
+                        skip=skip_translate
+                        )
                 if constraint_type == 2:
-                    cmds.orientConstraint(source_items[source_item], target_objects[source_item], mo=offset_type, skip=skip_rotate)
+                    cmds.orientConstraint(
+                        source_items[source_item],
+                        target_objects[source_item], 
+                        mo=offset_type, 
+                        skip=skip_rotate
+                        )
                 if constraint_type == 3:
-                    cmds.scaleConstraint(source_items[source_item], target_objects[source_item], mo=offset_type, skip=skip_scale) 
+                    cmds.scaleConstraint(
+                        source_items[source_item], 
+                        target_objects[source_item], 
+                        mo=offset_type, 
+                        skip=skip_scale
+                        ) 
 
         # match by name 
         else:
@@ -1331,11 +1329,8 @@ class RiggingUtilityTool(QMainWindow):
         if not source_item or not driver_item or not driven_item:
             return []
 
-        source_key, _, source_value = source_item.text().partition(" -> ")
-        if source_value == "root":
-            source_obj = source_key.strip()
-        else:
-            source_obj = source_value.strip()
+        _, _, source_value = source_item.text().partition(" -> ")
+        source_obj = source_value.strip()
 
         if self.radio_button_name.isChecked():
             suffix_name = self.suffix_lineedit.text().strip()
@@ -1352,11 +1347,8 @@ class RiggingUtilityTool(QMainWindow):
             target_item = self.target_obj_list.currentItem()
             if not target_item:
                 return []
-            target_key, _, target_value = target_item.text().partition(" -> ")
-            if target_value == "root":
-                target_obj = target_key.strip()
-            else:
-                target_obj = target_value.strip()
+            _, _, target_value = target_item.text().partition(" -> ")
+            target_obj = target_value.strip()
 
         driver_attr = driver_item.text().strip()
         driven_attr = driven_item.text().strip()
@@ -1441,8 +1433,8 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                 return
 
-            for i, source_obj in enumerate(source_items):
-                target_obj = target_objects[i]
+            for source_item, source_obj in enumerate(source_items):
+                target_obj = target_objects[source_item]
                 if connection_attrs:
                     self.connect_attrs(source_obj, target_obj, connection_attrs)
                 if custom_attrs:
@@ -1500,7 +1492,15 @@ class RiggingUtilityTool(QMainWindow):
         target_skin = cmds.ls(cmds.listHistory(target_obj), type="skinCluster")
         if not target_skin:
             influences_joint_source = cmds.skinCluster(source_skin, q=True, influence=True)
-            target_skin = cmds.skinCluster(influences_joint_source, target_obj, toSelectedBones=True, bindMethod=0, skinMethod=0, normalizeWeights=1,)
+            target_skin = cmds.skinCluster(
+                influences_joint_source, 
+                target_obj, 
+                toSelectedBones=True, 
+                bindMethod=0, 
+                skinMethod=0, 
+                normalizeWeights=1
+                )
+            
             if not target_skin:
                 cmds.warning("Failed to create a skinCluster on {}.".format(target_obj))
                 return False
@@ -1561,15 +1561,15 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                 return
 
-            for i in range(len(source_objects)):
-                source_obj = source_objects[i]
-                target_obj = target_objects[i]
+            for source_object in range(len(source_objects)):
+                source_obj = source_objects[source_object]
+                target_obj = target_objects[source_object]
                 if not self.has_skin_cluster(source_obj):
                     cmds.warning("{} has no skinCluster.".format(source_obj))
                     self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
                     continue
                 self.copy_skin_wts_mesh(source_obj, target_obj, association_type, influenceAssociation_list)
-                print(i)
+                # print(source_object)
 
         # match by name
         else:
@@ -1662,8 +1662,8 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                 return
 
-            for i in range(len(source_objects)):
-                object_pairs.append((source_objects[i], target_objects[i]))
+            for source_object in range(len(source_objects)):
+                object_pairs.append((source_objects[source_object], target_objects[source_object]))
 
         # Match by name
         else:
@@ -1703,11 +1703,20 @@ class RiggingUtilityTool(QMainWindow):
             if not cmds.objExists(source_obj) or not cmds.objExists(target_obj):
                 continue
 
-            connection_attributes = cmds.listConnections(source_obj, destination=True, source=False, plugs=True, connections=True) or []
+            connection_attributes = cmds.listConnections(
+                source_obj, 
+                destination=True, 
+                source=False, 
+                plugs=True, 
+                connections=True
+                ) or []
 
             for connection_index in range(0, len(connection_attributes), 2):
                 try:
-                    cmds.disconnectAttr(connection_attributes[connection_index], connection_attributes[connection_index + 1])
+                    cmds.disconnectAttr(
+                        connection_attributes[connection_index],
+                        connection_attributes[connection_index + 1])
+                    
                     print(f"Disconnected {connection_attributes[connection_index]} -> {connection_attributes[connection_index + 1]}")
                     disconnected_any = True
 
@@ -1750,12 +1759,9 @@ class RiggingUtilityTool(QMainWindow):
     def get_items_from_list(self, list_widget_object):
         items = []
 
-        for i in range(list_widget_object.count()):
-            key, arrow , value = list_widget_object.item(i).text().partition(" -> ")
-            if value == "root":
-                items.append(key)
-            else:
-                items.append(value)
+        for selected_object in range(list_widget_object.count()):
+            _, _, value = list_widget_object.item(selected_object).text().partition(" -> ")
+            items.append(value)
         return items
 
 def show_window():
