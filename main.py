@@ -10,7 +10,7 @@ from maya import OpenMayaUI as omui
 import maya.cmds as cmds
 import shiboken2
 
-ITEMS = ["None", "Closest Bone", "Closest Joint", "One To One", "Label", "Name" ]
+INFLUENCE_ASSOCIATION_ITEMS = ["None", "Closest Bone", "Closest Joint", "One To One", "Label", "Name" ]
 
 def get_maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
@@ -293,14 +293,14 @@ class RiggingUtilityTool(QMainWindow):
         self.target_obj_list = QListWidget()
         self.target_obj_list.setMinimumHeight(200)
 
-        # dictionaries for target and source object list initialized 
-        self.source_key_value_dict = {}
-        self.target_key_value_dict = {}
+        # full DAG paths for target and source object lists 
+        self.source_object_paths = []
+        self.target_object_paths = []
 
         # set Tool Tips
         self.source_obj_list.setToolTip("Objects that will drive the constraint / connection")
         self.target_obj_list.setToolTip("Objects that will receive the constraint / connection")
-
+        # alt+24 - ↑ alt+25 - ↓
         self.source_move_up_btn = QPushButton("↑")
         self.source_move_up_btn.setFixedSize(25, 25)
         self.source_move_up_btn.setToolTip("Move selected source item up")
@@ -328,7 +328,6 @@ class RiggingUtilityTool(QMainWindow):
         source_buttons_layout.addWidget(self.clear_list_source_button)
 
         source_list_row_layout = QHBoxLayout()
-        
         source_button_column_layout = QVBoxLayout()
         source_button_column_layout.setSpacing(4)
         source_button_column_layout.setAlignment(Qt.AlignCenter)
@@ -411,7 +410,7 @@ class RiggingUtilityTool(QMainWindow):
         # Suffix text box
         self.suffix_lineedit = QLineEdit()
         self.suffix_lineedit.setPlaceholderText("Target suffix (e.g. _bind)")
-        self.suffix_lineedit.setToolTip("Suffix appended to each source name to find its matching target")
+        self.suffix_lineedit.setToolTip("Suffix appended to each source name to find its matching target, \nSuffix find Object correctly only if the top grp is same between source and target")
         self.suffix_lineedit.setFixedWidth(160)
         self.suffix_lineedit.setEnabled(False)
 
@@ -425,17 +424,17 @@ class RiggingUtilityTool(QMainWindow):
         self.match_group_offset.setLayout(self.match_group)
 
         # connections matchby name
-        self.radio_button_name.toggled.connect(self.radio_buttondisable)
+        self.radio_button_name.toggled.connect(self.on_match_by_name_toggled)
 
         # creating TabWidget 
         self.main_tab_widget = QTabWidget()
-        self.first_tab = QWidget()
-        self.second_tab = QWidget()
-        self.third_tab = QWidget()
+        self.constraint_tab = QWidget()
+        self.connection_tab = QWidget()
+        self.copyskin_tab = QWidget()
 
-        self.main_tab_widget.addTab(self.first_tab, "Constraint")
-        self.main_tab_widget.addTab(self.second_tab, "Connnection")
-        self.main_tab_widget.addTab(self.third_tab, "Copy Skin")
+        self.main_tab_widget.addTab(self.constraint_tab, "Constraint")
+        self.main_tab_widget.addTab(self.connection_tab, "Connnection")
+        self.main_tab_widget.addTab(self.copyskin_tab, "Copy Skin")
 
         # setToolTip (on the tab bar itself, not the page content)
         self.main_tab_widget.setTabToolTip(0, "Create or delete constraints between source and target objects")
@@ -474,7 +473,7 @@ class RiggingUtilityTool(QMainWindow):
 
         # maintain offset Options Creation 
         maintain_offset_layout = QHBoxLayout()
-        maintain_offset = QLabel("Maintain Offset:")
+        maintain_offset_label = QLabel("Maintain Offset:")
         self.offset_radio_on = QRadioButton("On")
         self.offset_radio_off = QRadioButton("Off")
         self.offset_radio_off.setChecked(True)
@@ -483,7 +482,7 @@ class RiggingUtilityTool(QMainWindow):
         maintain_offset_layout.setContentsMargins(120, 0, 100, 0)
         maintain_offset_layout.setSpacing(0)
     
-        maintain_offset_layout.addWidget(maintain_offset)
+        maintain_offset_layout.addWidget(maintain_offset_label)
         maintain_offset_layout.addWidget(self.offset_radio_on)
         maintain_offset_layout.addWidget(self.offset_radio_off)
 
@@ -493,7 +492,7 @@ class RiggingUtilityTool(QMainWindow):
         divider_offsets = self.create_divider_for_ui(QFrame.HLine)
         constraint_main_layout.addWidget(divider_offsets)
 
-        self.first_tab.setLayout(constraint_main_layout)  
+        self.constraint_tab.setLayout(constraint_main_layout)
 
         # creation constraint Axes Group 
         constraint_axes_group = QGroupBox("Constraint Axes Attributes")
@@ -687,14 +686,14 @@ class RiggingUtilityTool(QMainWindow):
         self.driver_driven_group.setChecked(False)
         self.driver_driven_group.setToolTip("Enable to connect custom attributes instead of / in addition to the axes above")
         self.driver_driven_layout = QGridLayout()
-        self.all_driver_label = QLabel("Driver Attribute Type")
+        self.driver_attr_type_label = QLabel("Driver Attribute Type")
         self.driver_combobox = QComboBox()
-        self.all_drivers_listwidget = QListWidget()
-        self.all_driven_label = QLabel("Driven Attribute Type")
+        self.driver_attrs_listwidget = QListWidget()
+        self.driven_attr_type_label = QLabel("Driven Attribute Type")
         self.driven_combobox = QComboBox()
-        self.all_driven_listwidget = QListWidget()
-        self.all_drivers_listwidget.setToolTip("Attributes available on the Source objects")
-        self.all_driven_listwidget.setToolTip("Attributes available on the Target objects")
+        self.driven_attrs_listwidget = QListWidget()
+        self.driver_attrs_listwidget.setToolTip("Attributes available on the Source objects")
+        self.driven_attrs_listwidget.setToolTip("Attributes available on the Target objects")
         
         self.driver_combobox.addItem("Default")
         self.driver_combobox.addItem("Custom")
@@ -710,14 +709,14 @@ class RiggingUtilityTool(QMainWindow):
         # self.remove_item_button = QPushButton("Remove Item")
         # self.clear_attributes_button = QPushButton("Clear")
 
-        self.driver_driven_layout.addWidget(self.all_driver_label, 0, 0)
-        self.driver_driven_layout.addWidget(self.all_driven_label, 0, 2)
+        self.driver_driven_layout.addWidget(self.driver_attr_type_label, 0, 0)
+        self.driver_driven_layout.addWidget(self.driven_attr_type_label, 0, 2)
         self.driver_driven_layout.addWidget(self.driver_combobox, 1, 0)
         self.driver_driven_layout.addWidget(self.driven_combobox, 1, 2)
         divider_connection = self.create_divider_for_ui(QFrame.VLine)
         self.driver_driven_layout.addWidget(divider_connection, 0, 1, 3, 1)
-        self.driver_driven_layout.addWidget(self.all_drivers_listwidget, 2, 0)
-        self.driver_driven_layout.addWidget(self.all_driven_listwidget, 2, 2)
+        self.driver_driven_layout.addWidget(self.driver_attrs_listwidget, 2, 0)
+        self.driver_driven_layout.addWidget(self.driven_attrs_listwidget, 2, 2)
         
 
         self.translate_all_checkbox_connection.setChecked(True)
@@ -758,7 +757,7 @@ class RiggingUtilityTool(QMainWindow):
         connection_tab_layout.addLayout(self.connection_button_layout)
         
         self.connection_axes_group.setLayout(self.connection_options_layout)
-        self.second_tab.setLayout(connection_tab_layout)
+        self.connection_tab.setLayout(connection_tab_layout)
 
         # set ToolTips
         self.create_connection_button.setToolTip("Connect attributes from Source objects onto Target objects")
@@ -777,23 +776,23 @@ class RiggingUtilityTool(QMainWindow):
 
         # signals For Populating cutom attributes 
         # self.source_obj_list.itemSelectionChanged.connect(
-        #     lambda: self.populate_custom_attributes(self.source_obj_list, self.all_drivers_listwidget)
+        #     lambda: self.populate_custom_attributes(self.source_obj_list, self.driver_attrs_listwidget)
         # )
         # self.target_obj_list.itemSelectionChanged.connect(
-        #     lambda: self.populate_custom_attributes(self.target_obj_list, self.all_driven_listwidget)
+        #     lambda: self.populate_custom_attributes(self.target_obj_list, self.driven_attrs_listwidget)
         # )
 
         self.source_obj_list.itemSelectionChanged.connect(
             lambda: self.update_driver_driven_listwidget_order(
                 self.source_obj_list,
-                self.all_drivers_listwidget,
+                self.driver_attrs_listwidget,
                 self.driver_combobox.currentText(),
             )
         )
         self.driver_combobox.currentTextChanged.connect(
             lambda: self.update_driver_driven_listwidget_order(
                 self.source_obj_list,
-                self.all_drivers_listwidget,
+                self.driver_attrs_listwidget,
                 self.driver_combobox.currentText(),
             )
         )
@@ -801,14 +800,14 @@ class RiggingUtilityTool(QMainWindow):
         self.target_obj_list.itemSelectionChanged.connect(
             lambda: self.update_driver_driven_listwidget_order(
                 self.target_obj_list,
-                self.all_driven_listwidget,
+                self.driven_attrs_listwidget,
                 self.driven_combobox.currentText(),
             )
         )
         self.driven_combobox.currentTextChanged.connect(
             lambda: self.update_driver_driven_listwidget_order(
                 self.target_obj_list,
-                self.all_driven_listwidget,
+                self.driven_attrs_listwidget,
                 self.driven_combobox.currentText(),
             )
         )
@@ -856,13 +855,13 @@ class RiggingUtilityTool(QMainWindow):
         self.influence_label_3 = QLabel("Influence Association 3: ")
 
         self.influence_combo_box_1 = QComboBox()
-        self.influence_combo_box_1.addItems(ITEMS)
+        self.influence_combo_box_1.addItems(INFLUENCE_ASSOCIATION_ITEMS)
 
         self.influence_combo_box_2 = QComboBox()
-        self.influence_combo_box_2.addItems(ITEMS)
+        self.influence_combo_box_2.addItems(INFLUENCE_ASSOCIATION_ITEMS)
 
         self.influence_combo_box_3 = QComboBox()
-        self.influence_combo_box_3.addItems(ITEMS)
+        self.influence_combo_box_3.addItems(INFLUENCE_ASSOCIATION_ITEMS)
 
         influence_tooltip = "Fallback method used to match influences (joints) between source and target skin clusters"
         self.influence_combo_box_1.setToolTip(influence_tooltip)
@@ -903,7 +902,7 @@ class RiggingUtilityTool(QMainWindow):
         divider_copyskin = self.create_divider_for_ui(QFrame.HLine)
         copyskin_tab_layout.addWidget(divider_copyskin)
         copyskin_tab_layout.addLayout(self.copyskin_button_layout)
-        self.third_tab.setLayout(copyskin_tab_layout)
+        self.copyskin_tab.setLayout(copyskin_tab_layout)
 
         # signals for copy Skin button 
         # self.copy_skin_btn.clicked.connect(self.copy_skins)
@@ -949,12 +948,13 @@ class RiggingUtilityTool(QMainWindow):
         custom_attributes = cmds.listAttr(current_object, keyable=True)
         return custom_attributes
     
-    def object_pairs_namematch(self, suffix, source_dict):
-        # source_dict maps short name (list display text) -> full DAG path,
-        # so the short name never has to be re-parsed out of the path string.
+    def get_object_pairs_by_name_match(self, suffix, source_items):
+        # source_items is a list of full DAG paths (identity is the path,
+        # not the short name, so duplicate leaf names can't collide here).
         object_pairs = []
-        for source_short_name, source_item in source_dict.items():
+        for source_item in source_items:
             top_level_group = source_item.split("|")[1]
+            source_short_name = source_item.rsplit("|", 1)[-1]
             source_base_name = source_short_name.rsplit("_", 1)[0]
             target_name = f"{source_base_name}{suffix}"
             # print(target_name)
@@ -968,34 +968,41 @@ class RiggingUtilityTool(QMainWindow):
             object_pairs.append((source_item, target_obj))
         return object_pairs
     
-    def get_dict_for_list(self, list_widget_object):
+    def get_matching_side_paths(self, list_widget_object):
         if list_widget_object is self.source_obj_list:
-            return self.source_key_value_dict
+            return self.source_object_paths
         if list_widget_object is self.target_obj_list:
-            return self.target_key_value_dict
-        raise ValueError("No key/value dictionary registered for this list widget.")
+            return self.target_object_paths
+
+
+    def get_opposite_side_paths(self, list_widget_object):
+        if list_widget_object is self.source_obj_list:
+            return self.target_object_paths
+        if list_widget_object is self.target_obj_list:
+            return self.source_object_paths
 
     @Slot()
-    def dialog_message_box(self, dialog_box_title, dialog_box_check_message, dialog_box_slot):
+    def dialog_message_box(self, title, message, on_confirm):
         response = QMessageBox.question(
             self,
-            dialog_box_title,
-            dialog_box_check_message
+            title,
+            message
         )
         if response == QMessageBox.Yes:
-            # main function called after confirmation 
-            dialog_box_slot()
+            # main function called after confirmation
+            on_confirm()
         else:
             self.set_status_message("User Canceled the operation")
 
     @Slot()
     def update_driver_driven_listwidget_order(self, list_widget, target_list_widget, driver_driven_combobox_value):
-        current_object_selected = list_widget.currentItem()
-        if not current_object_selected:
+        current_item = list_widget.currentItem()
+        if not current_item:
             return
 
-        key_value_dict = self.get_dict_for_list(list_widget)
-        current_object_selected = key_value_dict[current_object_selected.text()]
+        row = list_widget.row(current_item)
+        object_paths = self.get_matching_side_paths(list_widget)
+        current_object_selected = object_paths[row]
 
         target_list_widget.clear()
         if driver_driven_combobox_value == "Default":
@@ -1011,18 +1018,18 @@ class RiggingUtilityTool(QMainWindow):
     @Slot()
     def update_driver_driven_listwidget_name(self):
         if self.radio_button_name.isChecked():
-            current_object_selected = self.source_obj_list.currentItem()
-            if not current_object_selected:
+            current_item = self.source_obj_list.currentItem()
+            if not current_item:
                 return
-            source_short_name = current_object_selected.text()
-            current_object_selected = self.source_key_value_dict[source_short_name]
+            row = self.source_obj_list.row(current_item)
+            current_object_selected = self.source_object_paths[row]
 
             suffix = self.suffix_lineedit.text().strip()
-            self.all_driven_listwidget.clear()
+            self.driven_attrs_listwidget.clear()
             if not suffix:
                 return
 
-            object_pairs = self.object_pairs_namematch(suffix, {source_short_name: current_object_selected})
+            object_pairs = self.get_object_pairs_by_name_match(suffix, [current_object_selected])
             if object_pairs:
                 target_obj = object_pairs[0][1]
             else:
@@ -1031,14 +1038,14 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("No matching target object found for suffix.")
                 return
         else:
-            current_object_selected = self.target_obj_list.currentItem()
-            if not current_object_selected:
+            current_item = self.target_obj_list.currentItem()
+            if not current_item:
                 return
-            current_object_selected = self.target_key_value_dict[current_object_selected.text()]
-            target_obj = current_object_selected
+            row = self.target_obj_list.row(current_item)
+            target_obj = self.target_object_paths[row]
 
             # target_list_widget.clear()
-            self.all_driven_listwidget.clear()
+            self.driven_attrs_listwidget.clear()
 
         driven_combobox_value = self.driven_combobox.currentText()
         if driven_combobox_value == "Default":
@@ -1049,7 +1056,7 @@ class RiggingUtilityTool(QMainWindow):
             items = self.get_all_items(target_obj)
         else:
             items = []
-        self.all_driven_listwidget.addItems(items)
+        self.driven_attrs_listwidget.addItems(items)
 
     @Slot()
     def load_selected_objects(self, list_widget_object):
@@ -1060,23 +1067,30 @@ class RiggingUtilityTool(QMainWindow):
             self.set_status_message("ERROR: No objects selected in Maya.")
             return
 
-        key_value_dict = self.get_dict_for_list(list_widget_object)
+        object_paths = self.get_matching_side_paths(list_widget_object)
+        other_object_paths = self.get_opposite_side_paths(list_widget_object)
 
-        #   objects already present in the list should not be added again
-        existing_objects = set(key_value_dict.values())
+        # objects already present in the list should not be added again
+        existing_objects = set(object_paths)
+        # an object already used on the other side (source/target) cannot be added here
+        other_existing_objects = set(other_object_paths)
 
-        # adding the correct selected object to the key/value dictionary
+        # appending keeps object_paths[row] aligned with the widget's row order,
         for selected_item in selected_items:
             if selected_item in existing_objects:
                 print(f"Selected item {selected_item} is already added.")
                 continue
 
+            if selected_item in other_existing_objects:
+                print(f"Selected item {selected_item} is already used in the list.")
+                continue
+
             short_name = selected_item.rsplit("|", 1)[-1]
-            key_value_dict[short_name] = selected_item
+            object_paths.append(selected_item)
             list_widget_object.addItem(short_name)
     
     @Slot()
-    def radio_buttondisable(self, checked):
+    def on_match_by_name_toggled(self, checked):
         if checked:
             self.target_obj_list.setEnabled(not checked)
             self.load_target_obj_button.setEnabled(not checked)
@@ -1084,7 +1098,7 @@ class RiggingUtilityTool(QMainWindow):
             self.target_move_up_btn.setEnabled(not checked)
             self.target_move_down_btn.setEnabled(not checked)
             self.suffix_lineedit.setEnabled(checked)
-            self.all_driven_listwidget.clear()
+            self.driven_attrs_listwidget.clear()
             self.set_status_message("Driven attribute list cleared.")
         else:
             self.target_obj_list.setEnabled(not checked)
@@ -1097,7 +1111,7 @@ class RiggingUtilityTool(QMainWindow):
     @Slot()
     def clear_list(self, list_widget_object):
         list_widget_object.clear()
-        self.get_dict_for_list(list_widget_object).clear()
+        self.get_matching_side_paths(list_widget_object).clear()
         print(f"List Box Cleared")
         self.set_status_message("List box cleared.")
 
@@ -1106,11 +1120,12 @@ class RiggingUtilityTool(QMainWindow):
         row = list_widget_object.currentRow()
         if row <= 0:
             return
-        # print(row)
         item = list_widget_object.takeItem(row)
-        # print(item.text())
         list_widget_object.insertItem(row - 1, item)
         list_widget_object.setCurrentRow(row - 1)
+
+        object_paths = self.get_matching_side_paths(list_widget_object)
+        object_paths[row - 1], object_paths[row] = object_paths[row], object_paths[row - 1]
         self.set_status_message("Selected Object Moved Up.")
 
     @Slot()
@@ -1122,6 +1137,9 @@ class RiggingUtilityTool(QMainWindow):
         item = list_widget_object.takeItem(row)
         list_widget_object.insertItem(row + 1, item)
         list_widget_object.setCurrentRow(row + 1)
+
+        object_paths = self.get_matching_side_paths(list_widget_object)
+        object_paths[row], object_paths[row + 1] = object_paths[row + 1], object_paths[row]
         self.set_status_message("Selected Object Moved Down.")
 
     @Slot()
@@ -1159,121 +1177,126 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def create_constraints(self):
-        source_items = self.get_items_from_list(self.source_obj_list)
-        target_objects = self.get_items_from_list(self.target_obj_list)
-        # print(source_items)
-        # print(target_objects)
+        cmds.undoInfo(openChunk=True)
+        try:
+            source_items = self.get_items_from_list(self.source_obj_list)
+            target_objects = self.get_items_from_list(self.target_obj_list)
+            # print(source_items)
+            # print(target_objects)
 
-        constraint_type = self.constraint_type_combobox.currentIndex()
-        # print(constraint_type)
-        offset_type = self.offset_radio_on.isChecked()
-        # print(offset_type)
+            constraint_type = self.constraint_type_combobox.currentIndex()
+            # print(constraint_type)
+            maintain_offset_enabled = self.offset_radio_on.isChecked()
+            # print(maintain_offset_enabled)
 
-        skip_translate = []
-        skip_rotate = []
-        skip_scale = []
+            skip_translate = []
+            skip_rotate = []
+            skip_scale = []
 
-        if not self.translate_all_checkbox_constraint.isChecked():
-            if not self.translate_x_checkbox_constraint.isChecked():
-                skip_translate.append("x")
-            if not self.translate_y_checkbox_constraint.isChecked():
-                skip_translate.append("y")
-            if not self.translate_z_checkbox_constraint.isChecked():
-                skip_translate.append("z")
+            if not self.translate_all_checkbox_constraint.isChecked():
+                if not self.translate_x_checkbox_constraint.isChecked():
+                    skip_translate.append("x")
+                if not self.translate_y_checkbox_constraint.isChecked():
+                    skip_translate.append("y")
+                if not self.translate_z_checkbox_constraint.isChecked():
+                    skip_translate.append("z")
 
-        if not self.rotate_all_checkbox_constraint.isChecked():
-            if not self.rotate_x_checkbox_constraint.isChecked():
-                skip_rotate.append("x")
-            if not self.rotate_y_checkbox_constraint.isChecked():
-                skip_rotate.append("y")
-            if not self.rotate_z_checkbox_constraint.isChecked():
-                skip_rotate.append("z")
+            if not self.rotate_all_checkbox_constraint.isChecked():
+                if not self.rotate_x_checkbox_constraint.isChecked():
+                    skip_rotate.append("x")
+                if not self.rotate_y_checkbox_constraint.isChecked():
+                    skip_rotate.append("y")
+                if not self.rotate_z_checkbox_constraint.isChecked():
+                    skip_rotate.append("z")
 
-        if not self.scale_all_checkbox_constraint.isChecked():
-            if not self.scale_x_checkbox_constraint.isChecked():
-                skip_scale.append("x")
-            if not self.scale_y_checkbox_constraint.isChecked():
-                skip_scale.append("y")
-            if not self.scale_z_checkbox_constraint.isChecked():
-                skip_scale.append("z")
+            if not self.scale_all_checkbox_constraint.isChecked():
+                if not self.scale_x_checkbox_constraint.isChecked():
+                    skip_scale.append("x")
+                if not self.scale_y_checkbox_constraint.isChecked():
+                    skip_scale.append("y")
+                if not self.scale_z_checkbox_constraint.isChecked():
+                    skip_scale.append("z")
+                    
+            # print(f" translate {skip_translate}")
+            # print(f" rotate {skip_rotate}")
+            # print(f" rotate {skip_scale}")
+
+            # match by order 
+            if self.radio_button_order.isChecked():
+
+                if not source_items or not target_objects:
+                    print("Source and Target object lists need to be populated.")
+                    self.set_status_message("ERROR: Source and Target object lists need to be populated.")
+
+                if len(source_items) != len(target_objects):
+                    cmds.warning("Source and Target lists must contain the same number of objects.")
+                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                    return
+
+                for index in range(len(source_items)):
+                    if constraint_type == 0:
+                        cmds.parentConstraint(
+                            source_items[index],
+                            target_objects[index],
+                            mo=maintain_offset_enabled,
+                            skipTranslate=skip_translate,
+                            skipRotate=skip_rotate
+                            )
+                    elif constraint_type == 1:
+                        cmds.pointConstraint(
+                            source_items[index],
+                            target_objects[index],
+                            mo=maintain_offset_enabled,
+                            skip=skip_translate
+                            )
+                    if constraint_type == 2:
+                        cmds.orientConstraint(
+                            source_items[index],
+                            target_objects[index],
+                            mo=maintain_offset_enabled,
+                            skip=skip_rotate
+                            )
+                    if constraint_type == 3:
+                        cmds.scaleConstraint(
+                            source_items[index],
+                            target_objects[index],
+                            mo=maintain_offset_enabled,
+                            skip=skip_scale
+                            )
+
+            # match by name 
+            else:
+                # Only the source list is Checked if it is filled
+                if not source_items:
+                    cmds.warning("Source object list needs to be populated.")
+                    self.set_status_message("ERROR: Source object list needs to be populated.")
+                    return
                 
-        # print(f" translate {skip_translate}")
-        # print(f" rotate {skip_rotate}")
-        # print(f" rotate {skip_scale}")
+                suffix_name = self.suffix_lineedit.text().strip()
+                object_pairs = self.get_object_pairs_by_name_match(suffix_name, self.source_object_paths)
+                # print(object_pairs)
 
-        # match by order 
-        if self.radio_button_order.isChecked():
+                # connect constraints 
+                for source_item, target_obj in object_pairs:
+                    if not cmds.objExists(target_obj):
+                        cmds.warning("{} does not exist.".format(target_obj))
+                        continue
+                    # target_dict.append(target_name)
+                    # print(target_suffix)
+                    if constraint_type == 0:
+                        cmds.parentConstraint(source_item, target_obj, mo=maintain_offset_enabled, skipTranslate=skip_translate, skipRotate=skip_rotate)
+                    elif constraint_type == 1:
+                        cmds.pointConstraint(source_item, target_obj, mo=maintain_offset_enabled, skip=skip_translate)
+                    if constraint_type == 2:
+                        cmds.orientConstraint(source_item, target_obj, mo=maintain_offset_enabled, skip=skip_rotate)
+                    if constraint_type == 3:
+                        cmds.scaleConstraint(source_item, target_obj, mo=maintain_offset_enabled, skip=skip_scale)  
+            self.set_status_message("Constraints completed")
+                        # print(target_dict)
 
-            if not source_items or not target_objects:
-                print("Source and Target object lists need to be populated.")
-                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
-
-            if len(source_items) != len(target_objects):
-                cmds.warning("Source and Target lists must contain the same number of objects.")
-                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
-                return
-
-            for source_item in range(len(source_items)):
-                if constraint_type == 0:
-                    cmds.parentConstraint(
-                        source_items[source_item], 
-                        target_objects[source_item], 
-                        mo=offset_type, 
-                        skipTranslate=skip_translate, 
-                        skipRotate=skip_rotate
-                        )
-                elif constraint_type == 1:
-                    cmds.pointConstraint(
-                        source_items[source_item], 
-                        target_objects[source_item], 
-                        mo=offset_type, 
-                        skip=skip_translate
-                        )
-                if constraint_type == 2:
-                    cmds.orientConstraint(
-                        source_items[source_item],
-                        target_objects[source_item], 
-                        mo=offset_type, 
-                        skip=skip_rotate
-                        )
-                if constraint_type == 3:
-                    cmds.scaleConstraint(
-                        source_items[source_item], 
-                        target_objects[source_item], 
-                        mo=offset_type, 
-                        skip=skip_scale
-                        ) 
-
-        # match by name 
-        else:
-            # Only the source list is Checked if it is filled
-            if not source_items:
-                cmds.warning("Source object list needs to be populated.")
-                self.set_status_message("ERROR: Source object list needs to be populated.")
-                return
-            
-            suffix_name = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
-            # print(object_pairs)
-
-            # connect constraints 
-            for source_item, target_obj in object_pairs:
-                if not cmds.objExists(target_obj):
-                    cmds.warning("{} does not exist.".format(target_obj))
-                    continue
-                # target_dict.append(target_name)
-                # print(target_suffix)
-                if constraint_type == 0:
-                    cmds.parentConstraint(source_item, target_obj, mo=offset_type, skipTranslate=skip_translate, skipRotate=skip_rotate)
-                elif constraint_type == 1:
-                    cmds.pointConstraint(source_item, target_obj, mo=offset_type, skip=skip_translate)
-                if constraint_type == 2:
-                    cmds.orientConstraint(source_item, target_obj, mo=offset_type, skip=skip_rotate)
-                if constraint_type == 3:
-                    cmds.scaleConstraint(source_item, target_obj, mo=offset_type, skip=skip_scale)  
-
-        self.set_status_message("Constraints completed")
-            # print(target_dict)
+        finally:
+            cmds.undoInfo(closeChunk=True)
+        
 
     def connect_attrs(self, source_item, target_obj, connection_attrs):
         if not cmds.objExists(source_item):
@@ -1323,20 +1346,20 @@ class RiggingUtilityTool(QMainWindow):
 
     def get_selected_custom_attributes(self):
         source_item = self.source_obj_list.currentItem()
-        driver_item = self.all_drivers_listwidget.currentItem()
-        driven_item = self.all_driven_listwidget.currentItem()
+        driver_item = self.driver_attrs_listwidget.currentItem()
+        driven_item = self.driven_attrs_listwidget.currentItem()
 
         if not source_item or not driver_item or not driven_item:
             return []
 
-        source_short_name = source_item.text()
-        source_obj = self.source_key_value_dict[source_short_name]
+        source_row = self.source_obj_list.row(source_item)
+        source_obj = self.source_object_paths[source_row]
 
         if self.radio_button_name.isChecked():
             suffix_name = self.suffix_lineedit.text().strip()
             if not suffix_name:
                 return []
-            object_pairs = self.object_pairs_namematch(suffix_name, {source_short_name: source_obj})
+            object_pairs = self.get_object_pairs_by_name_match(suffix_name, [source_obj])
             if object_pairs:
                 target_obj = object_pairs[0][1]
             else:
@@ -1347,7 +1370,8 @@ class RiggingUtilityTool(QMainWindow):
             target_item = self.target_obj_list.currentItem()
             if not target_item:
                 return []
-            target_obj = self.target_key_value_dict[target_item.text()]
+            target_row = self.target_obj_list.row(target_item)
+            target_obj = self.target_object_paths[target_row]
 
         driver_attr = driver_item.text().strip()
         driven_attr = driven_item.text().strip()
@@ -1361,106 +1385,110 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def create_connections(self):
-        source_items = self.get_items_from_list(self.source_obj_list)
-        target_objects = self.get_items_from_list(self.target_obj_list)
+        cmds.undoInfo(openChunk=True)
+        try:
+            source_items = self.get_items_from_list(self.source_obj_list)
+            target_objects = self.get_items_from_list(self.target_obj_list)
 
-        if self.connection_axes_group.isChecked():
-            translate_attrs = []
-            rotate_attrs = []
-            scale_attrs = []
-            if self.translate_all_checkbox_connection.isChecked():
-                translate_attrs = ["translateX", "translateY", "translateZ"]
+            if self.connection_axes_group.isChecked():
+                translate_attrs = []
+                rotate_attrs = []
+                scale_attrs = []
+                if self.translate_all_checkbox_connection.isChecked():
+                    translate_attrs = ["translateX", "translateY", "translateZ"]
+                else:
+                    if self.translate_x_checkbox_connection.isChecked():
+                        translate_attrs.append("translateX")
+                    if self.translate_y_checkbox_connection.isChecked():
+                        translate_attrs.append("translateY")
+                    if self.translate_z_checkbox_connection.isChecked():
+                        translate_attrs.append("translateZ")
+
+                if self.rotate_all_checkbox_connection.isChecked():
+                    rotate_attrs = ["rotateX", "rotateY", "rotateZ"]
+                else:
+                    if self.rotate_x_checkbox_connection.isChecked():
+                        rotate_attrs.append("rotateX")
+                    if self.rotate_y_checkbox_connection.isChecked():
+                        rotate_attrs.append("rotateY")
+                    if self.rotate_z_checkbox_connection.isChecked():
+                        rotate_attrs.append("rotateZ")
+
+                if self.scale_all_checkbox_connection.isChecked():
+                    scale_attrs = ["scaleX", "scaleY", "scaleZ"]
+                else:
+                    if self.scale_x_checkbox_connection.isChecked():
+                        scale_attrs.append("scaleX")
+                    if self.scale_y_checkbox_connection.isChecked():
+                        scale_attrs.append("scaleY")
+                    if self.scale_z_checkbox_connection.isChecked():
+                        scale_attrs.append("scaleZ")
+
+                connection_attrs = translate_attrs + rotate_attrs + scale_attrs
+                custom_attrs = []
+            elif self.driver_driven_group.isChecked():
+                selected_pairs = self.get_selected_custom_attributes()
+                if not selected_pairs:
+                    self.set_status_message("ERROR: Select driver and driven attributes.")
+                    return
+
+                for source_obj, target_obj, driver_attr, driven_attr in selected_pairs:
+                    self.connect_selected_custom_attribute(source_obj, target_obj, driver_attr, driven_attr)
+
+                self.set_status_message("Connections done.")
+                return
             else:
-                if self.translate_x_checkbox_connection.isChecked():
-                    translate_attrs.append("translateX")
-                if self.translate_y_checkbox_connection.isChecked():
-                    translate_attrs.append("translateY")
-                if self.translate_z_checkbox_connection.isChecked():
-                    translate_attrs.append("translateZ")
-
-            if self.rotate_all_checkbox_connection.isChecked():
-                rotate_attrs = ["rotateX", "rotateY", "rotateZ"]
-            else:
-                if self.rotate_x_checkbox_connection.isChecked():
-                    rotate_attrs.append("rotateX")
-                if self.rotate_y_checkbox_connection.isChecked():
-                    rotate_attrs.append("rotateY")
-                if self.rotate_z_checkbox_connection.isChecked():
-                    rotate_attrs.append("rotateZ")
-
-            if self.scale_all_checkbox_connection.isChecked():
-                scale_attrs = ["scaleX", "scaleY", "scaleZ"]
-            else:
-                if self.scale_x_checkbox_connection.isChecked():
-                    scale_attrs.append("scaleX")
-                if self.scale_y_checkbox_connection.isChecked():
-                    scale_attrs.append("scaleY")
-                if self.scale_z_checkbox_connection.isChecked():
-                    scale_attrs.append("scaleZ")
-
-            connection_attrs = translate_attrs + rotate_attrs + scale_attrs
-            custom_attrs = []
-        elif self.driver_driven_group.isChecked():
-            selected_pairs = self.get_selected_custom_attributes()
-            if not selected_pairs:
-                self.set_status_message("ERROR: Select driver and driven attributes.")
+                self.set_status_message("ERROR: Select a connection section to run.")
                 return
 
-            for source_obj, target_obj, driver_attr, driven_attr in selected_pairs:
-                self.connect_selected_custom_attribute(source_obj, target_obj, driver_attr, driven_attr)
+            if not connection_attrs and not custom_attrs:
+                cmds.warning("No translate/rotate/scale channels or custom attributes selected to connect.")
+                self.set_status_message("ERROR: No channels or custom attributes selected to connect.")
+                return
+
+            # match by order
+            if self.radio_button_order.isChecked():
+                if not source_items or not target_objects:
+                    print("Source and Target object lists need to be populated.")
+                    self.set_status_message("ERROR: Source and Target object lists need to be populated.")
+                    return
+
+                if len(source_items) != len(target_objects):
+                    cmds.warning("Source and Target lists must contain the same number of objects.")
+                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                    return
+
+                for index, source_obj in enumerate(source_items):
+                    target_obj = target_objects[index]
+                    if connection_attrs:
+                        self.connect_attrs(source_obj, target_obj, connection_attrs)
+                    if custom_attrs:
+                        self.connect_attrs(source_obj, target_obj, custom_attrs)
+
+            # match by name
+            else:
+                if not source_items:
+                    cmds.warning("Source object list needs to be populated.")
+                    self.set_status_message("ERROR: Source object list needs to be populated.")
+                    return
+
+                suffix_name = self.suffix_lineedit.text().strip()
+                object_pairs = self.get_object_pairs_by_name_match(suffix_name, self.source_object_paths)
+                # print(object_pairs)
+
+                for source_obj, target_obj in object_pairs:
+                    if not cmds.objExists(target_obj):
+                        cmds.warning("{} does not exist.".format(target_obj))
+                        continue
+
+                    if connection_attrs:
+                        self.connect_attrs(source_obj, target_obj, connection_attrs)
+                    if custom_attrs:
+                        self.connect_attrs(source_obj, target_obj, custom_attrs)
 
             self.set_status_message("Connections done.")
-            return
-        else:
-            self.set_status_message("ERROR: Select a connection section to run.")
-            return
-
-        if not connection_attrs and not custom_attrs:
-            cmds.warning("No translate/rotate/scale channels or custom attributes selected to connect.")
-            self.set_status_message("ERROR: No channels or custom attributes selected to connect.")
-            return
-
-        # match by order
-        if self.radio_button_order.isChecked():
-            if not source_items or not target_objects:
-                print("Source and Target object lists need to be populated.")
-                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
-                return
-
-            if len(source_items) != len(target_objects):
-                cmds.warning("Source and Target lists must contain the same number of objects.")
-                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
-                return
-
-            for source_item, source_obj in enumerate(source_items):
-                target_obj = target_objects[source_item]
-                if connection_attrs:
-                    self.connect_attrs(source_obj, target_obj, connection_attrs)
-                if custom_attrs:
-                    self.connect_attrs(source_obj, target_obj, custom_attrs)
-
-        # match by name
-        else:
-            if not source_items:
-                cmds.warning("Source object list needs to be populated.")
-                self.set_status_message("ERROR: Source object list needs to be populated.")
-                return
-
-            suffix_name = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
-            # print(object_pairs)
-
-            for source_obj, target_obj in object_pairs:
-                if not cmds.objExists(target_obj):
-                    cmds.warning("{} does not exist.".format(target_obj))
-                    continue
-
-                if connection_attrs:
-                    self.connect_attrs(source_obj, target_obj, connection_attrs)
-                if custom_attrs:
-                    self.connect_attrs(source_obj, target_obj, custom_attrs)
-
-        self.set_status_message("Connections done.")
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     def has_skin_cluster(self, source_objects):
         if not source_objects:
@@ -1477,7 +1505,7 @@ class RiggingUtilityTool(QMainWindow):
 
         return False
 
-    def copy_skin_wts_mesh(self, source_obj, target_obj, association_type, influenceAssociation_list):
+    def copy_skin_weights_to_mesh(self, source_obj, target_obj, association_type, influence_association_list):
         source_skin = cmds.ls(cmds.listHistory(source_obj), type="skinCluster")
         if not source_skin:
             cmds.warning("{} has no skinCluster.".format(source_obj))
@@ -1509,7 +1537,7 @@ class RiggingUtilityTool(QMainWindow):
             ds=target_skin,
             noMirror=True,
             surfaceAssociation=association_type,
-            influenceAssociation=influenceAssociation_list,
+            influenceAssociation=influence_association_list,
         )
         print("Copied {} -> {}".format(source_obj, target_obj))
         self.set_status_message("Copied Skin weights done.")
@@ -1517,78 +1545,81 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def copy_skins(self):
-        source_objects = self.get_items_from_list(self.source_obj_list)
-        target_objects = self.get_items_from_list(self.target_obj_list)
+        cmds.undoInfo(openChunk=True)
+        try:
+            source_objects = self.get_items_from_list(self.source_obj_list)
+            target_objects = self.get_items_from_list(self.target_obj_list)
 
-        association_type = ""
-        if self.closest_point_radio_btn.isChecked():
-            association_type = "closestPoint"
-        elif self.ray_cast_radio_btn.isChecked():
-            association_type = "rayCast"
-        elif self.closest_component_radio_btn.isChecked():
-            association_type = "closestComponent"
-        else:
-            association_type = "closestPoint"
+            association_type = ""
+            if self.closest_point_radio_btn.isChecked():
+                association_type = "closestPoint"
+            elif self.ray_cast_radio_btn.isChecked():
+                association_type = "rayCast"
+            elif self.closest_component_radio_btn.isChecked():
+                association_type = "closestComponent"
+            else:
+                association_type = "closestPoint"
 
-        association_map = {
-            "Closest Joint": "closestJoint",
-            "Closest Bone": "closestBone",
-            "Name": "name",
-            "Label": "label",
-            "One To One": "oneToOne",
-        }
+            association_map = {
+                "Closest Joint": "closestJoint",
+                "Closest Bone": "closestBone",
+                "Name": "name",
+                "Label": "label",
+                "One To One": "oneToOne",
+            }
 
-        influenceAssociation_list = []
-        for combo in (self.influence_combo_box_1, self.influence_combo_box_2, self.influence_combo_box_3):
-            influence_text = combo.currentText()
-            if influence_text == "None":
-                continue
-            influenceAssociation_list.append(association_map[influence_text])
-
-        # match by order
-        if self.radio_button_order.isChecked():
-            if not source_objects and target_objects:
-                print("Source and Target object lists need to be populated.")
-                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
-                return
-
-            if len(source_objects) != len(target_objects):
-                cmds.warning("Source and Target lists must contain the same number of objects.")
-                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
-                return
-
-            for source_object in range(len(source_objects)):
-                source_obj = source_objects[source_object]
-                target_obj = target_objects[source_object]
-                if not self.has_skin_cluster(source_obj):
-                    cmds.warning("{} has no skinCluster.".format(source_obj))
-                    self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
+            influence_association_list = []
+            for combo in (self.influence_combo_box_1, self.influence_combo_box_2, self.influence_combo_box_3):
+                influence_text = combo.currentText()
+                if influence_text == "None":
                     continue
-                self.copy_skin_wts_mesh(source_obj, target_obj, association_type, influenceAssociation_list)
-                # print(source_object)
+                influence_association_list.append(association_map[influence_text])
 
-        # match by name
-        else:
-            if not source_objects:
-                cmds.warning("Source object list needs to be populated.")
-                self.set_status_message("ERROR: Source object list needs to be populated.")
-                return
+            # match by order
+            if self.radio_button_order.isChecked():
+                if not source_objects and target_objects:
+                    print("Source and Target object lists need to be populated.")
+                    self.set_status_message("ERROR: Source and Target object lists need to be populated.")
+                    return
 
-            suffix_name = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
-            # print(object_pairs)
+                if len(source_objects) != len(target_objects):
+                    cmds.warning("Source and Target lists must contain the same number of objects.")
+                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                    return
 
-            for source_obj, target_obj in object_pairs:
-                if not self.has_skin_cluster(source_obj):
-                    cmds.warning("{} has no skinCluster.".format(source_obj))
-                    self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
-                    continue
+                for index in range(len(source_objects)):
+                    source_obj = source_objects[index]
+                    target_obj = target_objects[index]
+                    if not self.has_skin_cluster(source_obj):
+                        cmds.warning("{} has no skinCluster.".format(source_obj))
+                        self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
+                        continue
+                    self.copy_skin_weights_to_mesh(source_obj, target_obj, association_type, influence_association_list)
 
-                if not cmds.objExists(target_obj):
-                    cmds.warning("{} does not exist.".format(target_obj))
-                    continue
+            # match by name
+            else:
+                if not source_objects:
+                    cmds.warning("Source object list needs to be populated.")
+                    self.set_status_message("ERROR: Source object list needs to be populated.")
+                    return
 
-                self.copy_skin_wts_mesh(source_obj, target_obj, association_type, influenceAssociation_list)
+                suffix_name = self.suffix_lineedit.text().strip()
+                object_pairs = self.get_object_pairs_by_name_match(suffix_name, self.source_object_paths)
+                # print(object_pairs)
+
+                for source_obj, target_obj in object_pairs:
+                    if not self.has_skin_cluster(source_obj):
+                        cmds.warning("{} has no skinCluster.".format(source_obj))
+                        self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
+                        continue
+
+                    if not cmds.objExists(target_obj):
+                        cmds.warning("{} does not exist.".format(target_obj))
+                        continue
+
+                    self.copy_skin_weights_to_mesh(source_obj, target_obj, association_type, influence_association_list)
+        finally:
+            cmds.undoInfo(closeChunk=True)
 
     @Slot()
     def enable_disable_translate_connection(self, checked):
@@ -1655,8 +1686,8 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
                 return
 
-            for source_object in range(len(source_objects)):
-                object_pairs.append((source_objects[source_object], target_objects[source_object]))
+            for index in range(len(source_objects)):
+                object_pairs.append((source_objects[index], target_objects[index]))
 
         # Match by name
         else:
@@ -1666,7 +1697,7 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             suffix_name = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
+            object_pairs = self.get_object_pairs_by_name_match(suffix_name, self.source_object_paths)
             print(object_pairs)
             
         # Disconnect connections
@@ -1701,11 +1732,11 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def delete_constraints(self):
-        target_objects = self.get_items_from_list(self.source_obj_list)
+        source_objects = self.get_items_from_list(self.source_obj_list)
         deleted_any = False
-        
-        for object in target_objects:
-            constraints = cmds.listConnections(object, type="constraint") or []
+
+        for source_obj in source_objects:
+            constraints = cmds.listConnections(source_obj, type="constraint") or []
             if constraints:
                 cmds.delete(constraints)
                 deleted_any = True
@@ -1728,12 +1759,10 @@ class RiggingUtilityTool(QMainWindow):
             self.driver_driven_group.setChecked(True)
             
     def get_items_from_list(self, list_widget_object):
-        key_value_dict = self.get_dict_for_list(list_widget_object)
+        object_paths = self.get_matching_side_paths(list_widget_object)
         items = []
-
-        for selected_object in range(list_widget_object.count()):
-            key = list_widget_object.item(selected_object).text()
-            items.append(key_value_dict[key])
+        for row in range(list_widget_object.count()):
+            items.append(object_paths[row])
         return items
 
 def show_window():
