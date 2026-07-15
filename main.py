@@ -293,6 +293,10 @@ class RiggingUtilityTool(QMainWindow):
         self.target_obj_list = QListWidget()
         self.target_obj_list.setMinimumHeight(200)
 
+        # dictionaries for target and source object list initialized 
+        self.source_key_value_dict = {}
+        self.target_key_value_dict = {}
+
         # set Tool Tips
         self.source_obj_list.setToolTip("Objects that will drive the constraint / connection")
         self.target_obj_list.setToolTip("Objects that will receive the constraint / connection")
@@ -945,14 +949,12 @@ class RiggingUtilityTool(QMainWindow):
         custom_attributes = cmds.listAttr(current_object, keyable=True)
         return custom_attributes
     
-    def object_pairs_namematch(self, suffix, source_items):
-        # suffix = suffix_lineedit.text().strip()
+    def object_pairs_namematch(self, suffix, source_dict):
+        # source_dict maps short name (list display text) -> full DAG path,
+        # so the short name never has to be re-parsed out of the path string.
         object_pairs = []
-        for source_item in source_items:
-            full_path = cmds.ls(source_item, long=True)[0]
-            
-            top_level_group = full_path.split("|")[1]
-            source_short_name = source_item.split("|")[-1]
+        for source_short_name, source_item in source_dict.items():
+            top_level_group = source_item.split("|")[1]
             source_base_name = source_short_name.rsplit("_", 1)[0]
             target_name = f"{source_base_name}{suffix}"
             # print(target_name)
@@ -966,6 +968,13 @@ class RiggingUtilityTool(QMainWindow):
             object_pairs.append((source_item, target_obj))
         return object_pairs
     
+    def get_dict_for_list(self, list_widget_object):
+        if list_widget_object is self.source_obj_list:
+            return self.source_key_value_dict
+        if list_widget_object is self.target_obj_list:
+            return self.target_key_value_dict
+        raise ValueError("No key/value dictionary registered for this list widget.")
+
     @Slot()
     def dialog_message_box(self, dialog_box_title, dialog_box_check_message, dialog_box_slot):
         response = QMessageBox.question(
@@ -984,12 +993,9 @@ class RiggingUtilityTool(QMainWindow):
         current_object_selected = list_widget.currentItem()
         if not current_object_selected:
             return
-        
-        # list items are stored as key -> value 
-        # partition gives three tuples of three elements 
-        key, arrow, value = current_object_selected.text().partition(" -> ")
-        self.objects_key_value_dict[key] = value
-        current_object_selected = value
+
+        key_value_dict = self.get_dict_for_list(list_widget)
+        current_object_selected = key_value_dict[current_object_selected.text()]
 
         target_list_widget.clear()
         if driver_driven_combobox_value == "Default":
@@ -1008,15 +1014,15 @@ class RiggingUtilityTool(QMainWindow):
             current_object_selected = self.source_obj_list.currentItem()
             if not current_object_selected:
                 return
-            key, arrow, value = current_object_selected.text().partition(" -> ")
-            current_object_selected = value
+            source_short_name = current_object_selected.text()
+            current_object_selected = self.source_key_value_dict[source_short_name]
 
             suffix = self.suffix_lineedit.text().strip()
             self.all_driven_listwidget.clear()
             if not suffix:
                 return
 
-            object_pairs = self.object_pairs_namematch(suffix, [current_object_selected])
+            object_pairs = self.object_pairs_namematch(suffix, {source_short_name: current_object_selected})
             if object_pairs:
                 target_obj = object_pairs[0][1]
             else:
@@ -1028,9 +1034,7 @@ class RiggingUtilityTool(QMainWindow):
             current_object_selected = self.target_obj_list.currentItem()
             if not current_object_selected:
                 return
-            key, arrow, value = current_object_selected.text().partition(" -> ")
-            self.objects_key_value_dict[key] = value
-            current_object_selected = value
+            current_object_selected = self.target_key_value_dict[current_object_selected.text()]
             target_obj = current_object_selected
 
             # target_list_widget.clear()
@@ -1056,22 +1060,20 @@ class RiggingUtilityTool(QMainWindow):
             self.set_status_message("ERROR: No objects selected in Maya.")
             return
 
+        key_value_dict = self.get_dict_for_list(list_widget_object)
+
         #   objects already present in the list should not be added again
-        existing_objects = set(self.get_items_from_list(list_widget_object))
-        self.objects_key_value_dict = {}
-        # adding the correct selected object to the objects_key_value_dict dictionary
+        existing_objects = set(key_value_dict.values())
+
+        # adding the correct selected object to the key/value dictionary
         for selected_item in selected_items:
             if selected_item in existing_objects:
                 print(f"Selected item {selected_item} is already added.")
                 continue
 
-            target_suffix = selected_item.rsplit("|", 1)
-            self.objects_key_value_dict[target_suffix[1]] = selected_item
-        
-         # adding sleected objects
-        for key, value in self.objects_key_value_dict.items():
-            # print(key, value)
-            list_widget_object.addItem(f"{key} -> {value}")
+            short_name = selected_item.rsplit("|", 1)[-1]
+            key_value_dict[short_name] = selected_item
+            list_widget_object.addItem(short_name)
     
     @Slot()
     def radio_buttondisable(self, checked):
@@ -1095,6 +1097,7 @@ class RiggingUtilityTool(QMainWindow):
     @Slot()
     def clear_list(self, list_widget_object):
         list_widget_object.clear()
+        self.get_dict_for_list(list_widget_object).clear()
         print(f"List Box Cleared")
         self.set_status_message("List box cleared.")
 
@@ -1249,15 +1252,12 @@ class RiggingUtilityTool(QMainWindow):
                 self.set_status_message("ERROR: Source object list needs to be populated.")
                 return
             
-            suffix_name = self.suffix_lineedit.text().strip() 
-            object_pairs = self.object_pairs_namematch(suffix_name, source_items)
+            suffix_name = self.suffix_lineedit.text().strip()
+            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
             # print(object_pairs)
 
             # connect constraints 
             for source_item, target_obj in object_pairs:
-                # target_suffix = obj.rsplit("_", 1)[0]
-                # target_name = f"{target_suffix}{suffix}"
-
                 if not cmds.objExists(target_obj):
                     cmds.warning("{} does not exist.".format(target_obj))
                     continue
@@ -1329,14 +1329,14 @@ class RiggingUtilityTool(QMainWindow):
         if not source_item or not driver_item or not driven_item:
             return []
 
-        _, _, source_value = source_item.text().partition(" -> ")
-        source_obj = source_value.strip()
+        source_short_name = source_item.text()
+        source_obj = self.source_key_value_dict[source_short_name]
 
         if self.radio_button_name.isChecked():
             suffix_name = self.suffix_lineedit.text().strip()
             if not suffix_name:
                 return []
-            object_pairs = self.object_pairs_namematch(suffix_name, [source_obj])
+            object_pairs = self.object_pairs_namematch(suffix_name, {source_short_name: source_obj})
             if object_pairs:
                 target_obj = object_pairs[0][1]
             else:
@@ -1347,8 +1347,7 @@ class RiggingUtilityTool(QMainWindow):
             target_item = self.target_obj_list.currentItem()
             if not target_item:
                 return []
-            _, _, target_value = target_item.text().partition(" -> ")
-            target_obj = target_value.strip()
+            target_obj = self.target_key_value_dict[target_item.text()]
 
         driver_attr = driver_item.text().strip()
         driven_attr = driven_item.text().strip()
@@ -1448,13 +1447,10 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             suffix_name = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix_name, source_items)
+            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
             # print(object_pairs)
 
             for source_obj, target_obj in object_pairs:
-                # target_suffix = source_obj.rsplit("_", 1)[0]
-                # target_obj = f"{target_suffix}{suffix}"
-
                 if not cmds.objExists(target_obj):
                     cmds.warning("{} does not exist.".format(target_obj))
                     continue
@@ -1579,7 +1575,7 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             suffix_name = self.suffix_lineedit.text().strip()
-            object_pairs = self.object_pairs_namematch(suffix_name, source_objects)
+            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
             # print(object_pairs)
 
             for source_obj, target_obj in object_pairs:
@@ -1587,9 +1583,6 @@ class RiggingUtilityTool(QMainWindow):
                     cmds.warning("{} has no skinCluster.".format(source_obj))
                     self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
                     continue
-
-                target_suffix = source_obj.rsplit("_", 1)[0]
-                target_obj = f"{target_suffix}{suffix_name}"
 
                 if not cmds.objExists(target_obj):
                     cmds.warning("{} does not exist.".format(target_obj))
@@ -1673,29 +1666,7 @@ class RiggingUtilityTool(QMainWindow):
                 return
 
             suffix_name = self.suffix_lineedit.text().strip()
-
-            # for source_obj in source_objects:
-            #     target_prefix = source_obj.rsplit("_", 1)[0]
-            #     target_obj = f"{target_prefix}{suffix}"
-            #     object_pairs.append((source_obj, target_obj))
-
-            # for source_obj in source_objects:
-            #     full_path = cmds.ls(source_obj, long=True)[0]
-            #     top_grp_hierarchy = full_path.split("|")[1]
-            #     target_object = source_obj.split("|")[-1]
-            #     target_object_suffix = target_object.rsplit("_", 1)[0]
-            #     target_name = f"{target_object_suffix}{suffix}"
-            #     # print(target_name)
-            #     all_children = cmds.listRelatives(top_grp_hierarchy, ad=True, f=True) or []
-            #     matches = []
-            #     for x in all_children:
-            #         if x.endswith("|" + target_name):
-            #             matches= x
-            #             # print(matches)
-
-            #     object_pairs.append((source_obj, matches))
-
-            object_pairs = self.object_pairs_namematch(suffix_name, source_objects)
+            object_pairs = self.object_pairs_namematch(suffix_name, self.source_key_value_dict)
             print(object_pairs)
             
         # Disconnect connections
@@ -1757,11 +1728,12 @@ class RiggingUtilityTool(QMainWindow):
             self.driver_driven_group.setChecked(True)
             
     def get_items_from_list(self, list_widget_object):
+        key_value_dict = self.get_dict_for_list(list_widget_object)
         items = []
 
         for selected_object in range(list_widget_object.count()):
-            _, _, value = list_widget_object.item(selected_object).text().partition(" -> ")
-            items.append(value)
+            key = list_widget_object.item(selected_object).text()
+            items.append(key_value_dict[key])
         return items
 
 def show_window():
