@@ -153,26 +153,27 @@ class RiggingUtilityTool(QMainWindow):
                 border: 1px solid #6a6a6a;
             }
 
-            /* ---------- ComboBox ---------- */
+            /* ---------- ComboBox ----------*/ 
             QComboBox {
                 background-color: #5d5d5d;
                 color: #e6e6e6;
-                border: 1px solid #2a2a2a;
-                border-radius: 3px;
+                border: 1px #2a2a2a;
+                border-radius: 1px;
                 padding: 4px 8px;
+                min-width: 120px;
             }
             QComboBox:hover {
                 border: 1px solid #E8792A;
-            }
+            }      
             QComboBox:disabled {
                 background-color: #4a4a4a;
                 color: #7a7a7a;
                 border: 1px solid #3a3a3a;
             }
             QComboBox::drop-down {
-                border: none;
                 width: 18px;
-            }
+            }     
+            
             QComboBox QAbstractItemView {
                 background-color: #383838;
                 color: #cccccc;
@@ -181,7 +182,7 @@ class RiggingUtilityTool(QMainWindow):
                 selection-color: #ffffff;
                 outline: none;
             }
-
+            
             /* ---------- ListWidget ---------- */
             QListWidget {
                 background-color: #232323;
