@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
                                QLabel, QListWidget, QListWidgetItem, QHBoxLayout, QVBoxLayout,
-                               QRadioButton, QTabWidget, QComboBox, QStatusBar, QGroupBox,
+                               QRadioButton, QTabWidget, QComboBox, QGroupBox,
                                QCheckBox, QFormLayout, QLineEdit, QFrame, QMessageBox)
 
 from PySide2.QtCore import Qt, Slot
@@ -20,7 +20,7 @@ class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Multi-Object Rigging Toolkit")
-        self.setGeometry(200, 100, 600, 900)
+        self.setGeometry(100, 100, 600, 900)
         self.initUI()
 
     def initUI(self):
@@ -35,6 +35,8 @@ class RiggingUtilityTool(QMainWindow):
         self.apply_theme()
 
     def apply_theme(self):
+        # :: - Means which piece of widget 
+        # :  - means which state so (checked, diabled , indicator) 
         self.setStyleSheet("""
             QMainWindow, QWidget {
                 background-color: #444444;
@@ -142,6 +144,14 @@ class RiggingUtilityTool(QMainWindow):
             QCheckBox:disabled, QRadioButton:disabled {
                 color: #7a7a7a;
             }
+            QCheckBox::indicator:disabled, QRadioButton::indicator:disabled {
+                background-color: #3a3a3a;
+                border: 1px solid #2e2e2e;
+            }
+            QCheckBox::indicator:checked:disabled, QRadioButton::indicator:checked:disabled {
+                background-color: #7a7a7a;
+                border: 1px solid #6a6a6a;
+            }
 
             /* ---------- ComboBox ---------- */
             QComboBox {
@@ -153,6 +163,11 @@ class RiggingUtilityTool(QMainWindow):
             }
             QComboBox:hover {
                 border: 1px solid #E8792A;
+            }
+            QComboBox:disabled {
+                background-color: #4a4a4a;
+                color: #7a7a7a;
+                border: 1px solid #3a3a3a;
             }
             QComboBox::drop-down {
                 border: none;
@@ -185,6 +200,13 @@ class RiggingUtilityTool(QMainWindow):
             QListWidget::item:hover:!selected {
                 background-color: #3a3a3a;
             }
+            QListWidget:disabled {
+                background-color: #3a3a3a;
+                color: #7a7a7a;
+            }
+            QListWidget::item:disabled {
+                color: #7a7a7a;
+            }
 
             /* ---------- TabWidget ---------- */
             QTabWidget::pane {
@@ -209,13 +231,6 @@ class RiggingUtilityTool(QMainWindow):
             }
             QTabBar::tab:hover:!selected {
                 background: #4a4a4a;
-            }
-
-            /* ---------- StatusBar ---------- */
-            QStatusBar {
-                background: #393939;
-                color: #b0b0b0;
-                border-top: 1px solid #2a2a2a;
             }
 
             /* ---------- Frame (dividers) ---------- */
@@ -259,9 +274,13 @@ class RiggingUtilityTool(QMainWindow):
         """)
 
     def set_status_message(self, message):
-        self.status_bar.showMessage(message, timeout=3000)
         print(message)
-        
+        if message.upper().startswith("ERROR"):
+            QMessageBox.critical(self, "Error", message)
+        else:
+            QMessageBox.information(self, "Completed", message)
+
+
     def primary_button(self, text):
 
         new_push_button = QPushButton(text)
@@ -449,10 +468,6 @@ class RiggingUtilityTool(QMainWindow):
         self.main_layout.addWidget(self.main_tab_widget)
         
         self.central_widget.setLayout(self.main_layout)
-        # Status bar  
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.set_status_message("Ready")
 
     def constraint_tab_ui(self):
         # Creating Constraint tab 
@@ -581,27 +596,31 @@ class RiggingUtilityTool(QMainWindow):
         self.translate_all_checkbox_constraint.setChecked(True)
         self.rotate_all_checkbox_constraint.setChecked(True)
         self.scale_all_checkbox_constraint.setChecked(True)
-        # added all enable disbale 
-        if self.translate_all_checkbox_constraint.isChecked():
-            self.translate_x_checkbox_constraint.setEnabled(False)
-            self.translate_y_checkbox_constraint.setEnabled(False)
-            self.translate_z_checkbox_constraint.setEnabled(False)
+        self.translate_x_checkbox_constraint.setChecked(True)
+        self.translate_y_checkbox_constraint.setChecked(True)
+        self.translate_z_checkbox_constraint.setChecked(True)
+        self.rotate_x_checkbox_constraint.setChecked(True)
+        self.rotate_y_checkbox_constraint.setChecked(True)
+        self.rotate_z_checkbox_constraint.setChecked(True)
+        self.scale_x_checkbox_constraint.setChecked(True)
+        self.scale_y_checkbox_constraint.setChecked(True)
+        self.scale_z_checkbox_constraint.setChecked(True)
 
-        if self.rotate_all_checkbox_constraint.isChecked():
-            self.rotate_x_checkbox_constraint.setEnabled(False)
-            self.rotate_y_checkbox_constraint.setEnabled(False)
-            self.rotate_z_checkbox_constraint.setEnabled(False)
+        # signals for constraints
+        self.translate_all_checkbox_constraint.toggled.connect(self.sync_translate_all_constraint)
+        self.translate_x_checkbox_constraint.toggled.connect(self.sync_translate_axis_constraint)
+        self.translate_y_checkbox_constraint.toggled.connect(self.sync_translate_axis_constraint)
+        self.translate_z_checkbox_constraint.toggled.connect(self.sync_translate_axis_constraint)
 
-        if self.scale_all_checkbox_constraint.isChecked():
-            self.scale_x_checkbox_constraint.setEnabled(False)
-            self.scale_y_checkbox_constraint.setEnabled(False)
-            self.scale_z_checkbox_constraint.setEnabled(False)
+        self.rotate_all_checkbox_constraint.toggled.connect(self.sync_rotate_all_constraint)
+        self.rotate_x_checkbox_constraint.toggled.connect(self.sync_rotate_axis_constraint)
+        self.rotate_y_checkbox_constraint.toggled.connect(self.sync_rotate_axis_constraint)
+        self.rotate_z_checkbox_constraint.toggled.connect(self.sync_rotate_axis_constraint)
 
-
-        # signals for constraints 
-        self.translate_all_checkbox_constraint.toggled.connect(self.enable_disable_translate_constraints)
-        self.rotate_all_checkbox_constraint.toggled.connect(self.enable_disable_rotate_constraints)
-        self.scale_all_checkbox_constraint.toggled.connect(self.enable_disable_scale_constraints)
+        self.scale_all_checkbox_constraint.toggled.connect(self.sync_scale_all_constraint)
+        self.scale_x_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
+        self.scale_y_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
+        self.scale_z_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
         self.reset_constraint.clicked.connect(self.reset_constraint_options)
         # self.disconnect_constraint_btn.clicked.connect(self.delete_constraints)
         # self.create_constraint_btn.clicked.connect(self.create_constraints)
@@ -695,13 +714,13 @@ class RiggingUtilityTool(QMainWindow):
         self.driver_attrs_listwidget.setToolTip("Attributes available on the Source objects")
         self.driven_attrs_listwidget.setToolTip("Attributes available on the Target objects")
         
-        self.driver_combobox.addItem("Default")
-        self.driver_combobox.addItem("Custom")
-        self.driver_combobox.addItem("All")
-
-        self.driven_combobox.addItem("Default")
-        self.driven_combobox.addItem("Custom")
-        self.driven_combobox.addItem("All")
+        self.driver_combobox.addItem("All Attributes")
+        self.driver_combobox.addItem("Default Attributes")
+        self.driver_combobox.addItem("Custom Attributes")
+        
+        self.driven_combobox.addItem("All Attributes")
+        self.driven_combobox.addItem("Default Attributes")
+        self.driven_combobox.addItem("Custom Attributes")
 
         # self.add_attributes_button = QPushButton()
         # self.add_attributes_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowRight))
@@ -722,23 +741,17 @@ class RiggingUtilityTool(QMainWindow):
         self.translate_all_checkbox_connection.setChecked(True)
         self.rotate_all_checkbox_connection.setChecked(True)
         self.scale_all_checkbox_connection.setChecked(True)
-        # added all enable disbale 
-        if self.translate_all_checkbox_connection.isChecked():
-            self.translate_x_checkbox_connection.setEnabled(False)
-            self.translate_y_checkbox_connection.setEnabled(False)
-            self.translate_z_checkbox_connection.setEnabled(False)
+        self.translate_x_checkbox_connection.setChecked(True)
+        self.translate_y_checkbox_connection.setChecked(True)
+        self.translate_z_checkbox_connection.setChecked(True)
+        self.rotate_x_checkbox_connection.setChecked(True)
+        self.rotate_y_checkbox_connection.setChecked(True)
+        self.rotate_z_checkbox_connection.setChecked(True)
+        self.scale_x_checkbox_connection.setChecked(True)
+        self.scale_y_checkbox_connection.setChecked(True)
+        self.scale_z_checkbox_connection.setChecked(True)
 
-        if self.rotate_all_checkbox_connection.isChecked():
-            self.rotate_x_checkbox_connection.setEnabled(False)
-            self.rotate_y_checkbox_connection.setEnabled(False)
-            self.rotate_z_checkbox_connection.setEnabled(False)
-
-        if self.scale_all_checkbox_connection.isChecked():
-            self.scale_x_checkbox_connection.setEnabled(False)
-            self.scale_y_checkbox_connection.setEnabled(False)
-            self.scale_z_checkbox_connection.setEnabled(False)
-
-        # Create connection buttons 
+        # Create connection buttons
         self.connection_button_layout = QHBoxLayout()
         self.create_connection_button = self.primary_button("Create Connections")
         self.disconnect_connection_button = self.primary_button("Delete Connections")
@@ -766,10 +779,21 @@ class RiggingUtilityTool(QMainWindow):
         self.driven_combobox.setToolTip("Attribute set to push to on the Driven (Target) objects")
         self.reset_connection_axes_button.setToolTip("Reset all axis checkboxes back to their default (All enabled)")
 
-        # create signals 
-        self.translate_all_checkbox_connection.toggled.connect(self.enable_disable_translate_connection)
-        self.rotate_all_checkbox_connection.toggled.connect(self.enable_disable_rotate_connection)
-        self.scale_all_checkbox_connection.toggled.connect(self.enable_disable_scale_connection)
+        # create signals
+        self.translate_all_checkbox_connection.toggled.connect(self.sync_translate_all_connection)
+        self.translate_x_checkbox_connection.toggled.connect(self.sync_translate_axis_connection)
+        self.translate_y_checkbox_connection.toggled.connect(self.sync_translate_axis_connection)
+        self.translate_z_checkbox_connection.toggled.connect(self.sync_translate_axis_connection)
+
+        self.rotate_all_checkbox_connection.toggled.connect(self.sync_rotate_all_connection)
+        self.rotate_x_checkbox_connection.toggled.connect(self.sync_rotate_axis_connection)
+        self.rotate_y_checkbox_connection.toggled.connect(self.sync_rotate_axis_connection)
+        self.rotate_z_checkbox_connection.toggled.connect(self.sync_rotate_axis_connection)
+
+        self.scale_all_checkbox_connection.toggled.connect(self.sync_scale_all_connection)
+        self.scale_x_checkbox_connection.toggled.connect(self.sync_scale_axis_connection)
+        self.scale_y_checkbox_connection.toggled.connect(self.sync_scale_axis_connection)
+        self.scale_z_checkbox_connection.toggled.connect(self.sync_scale_axis_connection)
         self.reset_connection_axes_button.clicked.connect(self.reset_connection_options)
         self.driver_driven_group.toggled.connect(self.driver_driven_connection_axes_enable)
         self.connection_axes_group.toggled.connect(self.connection_axes_enabled)
@@ -992,7 +1016,7 @@ class RiggingUtilityTool(QMainWindow):
             # main function called after confirmation
             on_confirm()
         else:
-            self.set_status_message("User Canceled the operation")
+            print("User Canceled the operation")
 
     @Slot()
     def update_driver_driven_listwidget_order(self, list_widget, target_list_widget, driver_driven_combobox_value):
@@ -1005,11 +1029,11 @@ class RiggingUtilityTool(QMainWindow):
         current_object_selected = object_paths[row]
 
         target_list_widget.clear()
-        if driver_driven_combobox_value == "Default":
+        if driver_driven_combobox_value == "Default Attributes":
             items = self.get_translations(current_object_selected)
-        elif driver_driven_combobox_value == "Custom":
+        elif driver_driven_combobox_value == "Custom Attributes":
             items = self.get_custom_items(current_object_selected)
-        elif driver_driven_combobox_value == "All":
+        elif driver_driven_combobox_value == "All Attributes":
             items = self.get_all_items(current_object_selected)
         else:
             items = []
@@ -1075,19 +1099,30 @@ class RiggingUtilityTool(QMainWindow):
         # an object already used on the other side (source/target) cannot be added here
         other_existing_objects = set(other_object_paths)
 
+        added_count = 0
+        skipped = []
+
         # appending keeps object_paths[row] aligned with the widget's row order,
         for selected_item in selected_items:
+            short_name = selected_item.rsplit("|", 1)[-1]
             if selected_item in existing_objects:
-                print(f"Selected item {selected_item} is already added.")
+                cmds.warning("{} is already in the list.".format(short_name))
+                skipped.append("{} (already in list)".format(short_name))
                 continue
 
             if selected_item in other_existing_objects:
-                print(f"Selected item {selected_item} is already used in the list.")
+                cmds.warning("{} is already used on the other side.".format(short_name))
+                skipped.append("{} (used on other side)".format(short_name))
                 continue
 
-            short_name = selected_item.rsplit("|", 1)[-1]
             object_paths.append(selected_item)
             list_widget_object.addItem(short_name)
+            added_count += 1
+
+        summary = "Added {} objects to the list.".format(added_count)
+        if skipped:
+            summary += "\nSkipped {}: {}".format(len(skipped), ", ".join(skipped))
+        self.set_status_message(summary)
     
     @Slot()
     def on_match_by_name_toggled(self, checked):
@@ -1113,7 +1148,7 @@ class RiggingUtilityTool(QMainWindow):
         list_widget_object.clear()
         self.get_matching_side_paths(list_widget_object).clear()
         print(f"List Box Cleared")
-        self.set_status_message("List box cleared.")
+        # self.set_status_message("List box cleared.")
 
     @Slot()
     def move_selected_item_up(self, list_widget_object):
@@ -1143,37 +1178,52 @@ class RiggingUtilityTool(QMainWindow):
         self.set_status_message("Selected Object Moved Down.")
 
     @Slot()
-    def enable_disable_translate_constraints(self, checked):
-        if checked:
-            self.translate_x_checkbox_constraint.setChecked(False)
-            self.translate_y_checkbox_constraint.setChecked(False)
-            self.translate_z_checkbox_constraint.setChecked(False)
-
-        self.translate_x_checkbox_constraint.setEnabled(not checked)
-        self.translate_y_checkbox_constraint.setEnabled(not checked)
-        self.translate_z_checkbox_constraint.setEnabled(not checked)
+    def sync_translate_all_constraint(self, checked):
+        for checkbox in (self.translate_x_checkbox_constraint, self.translate_y_checkbox_constraint, self.translate_z_checkbox_constraint):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
 
     @Slot()
-    def enable_disable_rotate_constraints(self, checked):
-        if checked:
-            self.rotate_x_checkbox_constraint.setChecked(not checked)
-            self.rotate_y_checkbox_constraint.setChecked(not checked)
-            self.rotate_z_checkbox_constraint.setChecked(not checked)
-
-        self.rotate_x_checkbox_constraint.setEnabled(not checked)
-        self.rotate_y_checkbox_constraint.setEnabled(not checked)
-        self.rotate_z_checkbox_constraint.setEnabled(not checked)
+    def sync_translate_axis_constraint(self, _checked):
+        all_checked = (self.translate_x_checkbox_constraint.isChecked()
+                       and self.translate_y_checkbox_constraint.isChecked()
+                       and self.translate_z_checkbox_constraint.isChecked())
+        self.translate_all_checkbox_constraint.blockSignals(True)
+        self.translate_all_checkbox_constraint.setChecked(all_checked)
+        self.translate_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
-    def enable_disable_scale_constraints(self, checked):
-        if checked:
-            self.scale_x_checkbox_constraint.setChecked(not checked)
-            self.scale_y_checkbox_constraint.setChecked(not checked)
-            self.scale_z_checkbox_constraint.setChecked(not checked)
+    def sync_rotate_all_constraint(self, checked):
+        for checkbox in (self.rotate_x_checkbox_constraint, self.rotate_y_checkbox_constraint, self.rotate_z_checkbox_constraint):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
 
-        self.scale_x_checkbox_constraint.setEnabled(not checked)
-        self.scale_y_checkbox_constraint.setEnabled(not checked)
-        self.scale_z_checkbox_constraint.setEnabled(not checked)
+    @Slot()
+    def sync_rotate_axis_constraint(self, _checked):
+        all_checked = (self.rotate_x_checkbox_constraint.isChecked()
+                       and self.rotate_y_checkbox_constraint.isChecked()
+                       and self.rotate_z_checkbox_constraint.isChecked())
+        self.rotate_all_checkbox_constraint.blockSignals(True)
+        self.rotate_all_checkbox_constraint.setChecked(all_checked)
+        self.rotate_all_checkbox_constraint.blockSignals(False)
+
+    @Slot()
+    def sync_scale_all_constraint(self, checked):
+        for checkbox in (self.scale_x_checkbox_constraint, self.scale_y_checkbox_constraint, self.scale_z_checkbox_constraint):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
+
+    @Slot()
+    def sync_scale_axis_constraint(self, _checked):
+        all_checked = (self.scale_x_checkbox_constraint.isChecked()
+                       and self.scale_y_checkbox_constraint.isChecked()
+                       and self.scale_z_checkbox_constraint.isChecked())
+        self.scale_all_checkbox_constraint.blockSignals(True)
+        self.scale_all_checkbox_constraint.setChecked(all_checked)
+        self.scale_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
     def create_constraints(self):
@@ -1540,7 +1590,6 @@ class RiggingUtilityTool(QMainWindow):
             influenceAssociation=influence_association_list,
         )
         print("Copied {} -> {}".format(source_obj, target_obj))
-        self.set_status_message("Copied Skin weights done.")
         return True
 
     @Slot()
@@ -1575,6 +1624,9 @@ class RiggingUtilityTool(QMainWindow):
                     continue
                 influence_association_list.append(association_map[influence_text])
 
+            copied_count = 0
+            skipped = []
+
             # match by order
             if self.radio_button_order.isChecked():
                 if not source_objects and target_objects:
@@ -1592,9 +1644,12 @@ class RiggingUtilityTool(QMainWindow):
                     target_obj = target_objects[index]
                     if not self.has_skin_cluster(source_obj):
                         cmds.warning("{} has no skinCluster.".format(source_obj))
-                        self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
+                        skipped.append("{} (no skinCluster)".format(source_obj))
                         continue
-                    self.copy_skin_weights_to_mesh(source_obj, target_obj, association_type, influence_association_list)
+                    if self.copy_skin_weights_to_mesh(source_obj, target_obj, association_type, influence_association_list):
+                        copied_count += 1
+                    else:
+                        skipped.append("{} (failed)".format(source_obj))
 
             # match by name
             else:
@@ -1610,49 +1665,73 @@ class RiggingUtilityTool(QMainWindow):
                 for source_obj, target_obj in object_pairs:
                     if not self.has_skin_cluster(source_obj):
                         cmds.warning("{} has no skinCluster.".format(source_obj))
-                        self.set_status_message("ERROR: {} has no skinCluster.".format(source_obj))
+                        skipped.append("{} (no skinCluster)".format(source_obj))
                         continue
 
                     if not cmds.objExists(target_obj):
                         cmds.warning("{} does not exist.".format(target_obj))
+                        skipped.append("{} (target missing)".format(target_obj))
                         continue
 
-                    self.copy_skin_weights_to_mesh(source_obj, target_obj, association_type, influence_association_list)
+                    if self.copy_skin_weights_to_mesh(source_obj, target_obj, association_type, influence_association_list):
+                        copied_count += 1
+                    else:
+                        skipped.append("{} (failed)".format(source_obj))
+
+            summary = "Copied skin weights for {} object(s).".format(copied_count)
+            if skipped:
+                summary += "\nSkipped {}: {}".format(len(skipped), ", ".join(skipped))
+            self.set_status_message(summary)
         finally:
             cmds.undoInfo(closeChunk=True)
 
     @Slot()
-    def enable_disable_translate_connection(self, checked):
-        if checked:
-            self.translate_x_checkbox_connection.setChecked(False)
-            self.translate_y_checkbox_connection.setChecked(False)
-            self.translate_z_checkbox_connection.setChecked(False)
-
-        self.translate_x_checkbox_connection.setEnabled(not checked)
-        self.translate_y_checkbox_connection.setEnabled(not checked)
-        self.translate_z_checkbox_connection.setEnabled(not checked)
+    def sync_translate_all_connection(self, checked):
+        for checkbox in (self.translate_x_checkbox_connection, self.translate_y_checkbox_connection, self.translate_z_checkbox_connection):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
 
     @Slot()
-    def enable_disable_rotate_connection(self, checked):
-        if checked:
-            self.rotate_x_checkbox_connection.setChecked(False)
-            self.rotate_y_checkbox_connection.setChecked(False)
-            self.rotate_z_checkbox_connection.setChecked(False)
-
-        self.rotate_x_checkbox_connection.setEnabled(not checked)
-        self.rotate_y_checkbox_connection.setEnabled(not checked)
-        self.rotate_z_checkbox_connection.setEnabled(not checked)
+    def sync_translate_axis_connection(self, checked):
+        all_checked = (self.translate_x_checkbox_connection.isChecked()
+                       and self.translate_y_checkbox_connection.isChecked()
+                       and self.translate_z_checkbox_connection.isChecked())
+        self.translate_all_checkbox_connection.blockSignals(True)
+        self.translate_all_checkbox_connection.setChecked(all_checked)
+        self.translate_all_checkbox_connection.blockSignals(False)
 
     @Slot()
-    def enable_disable_scale_connection(self, checked):
-        if checked:
-            self.scale_x_checkbox_connection.setChecked(False)
-            self.scale_y_checkbox_connection.setChecked(False)
-            self.scale_z_checkbox_connection.setChecked(False)
+    def sync_rotate_all_connection(self, checked):
+        for checkbox in (self.rotate_x_checkbox_connection, self.rotate_y_checkbox_connection, self.rotate_z_checkbox_connection):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
 
-        self.scale_x_checkbox_connection.setEnabled(not checked)
-        self.scale_y_checkbox_connection.setEnabled(not checked)
-        self.scale_z_checkbox_connection.setEnabled(not checked)
+    @Slot()
+    def sync_rotate_axis_connection(self, checked):
+        all_checked = (self.rotate_x_checkbox_connection.isChecked()
+                       and self.rotate_y_checkbox_connection.isChecked()
+                       and self.rotate_z_checkbox_connection.isChecked())
+        self.rotate_all_checkbox_connection.blockSignals(True)
+        self.rotate_all_checkbox_connection.setChecked(all_checked)
+        self.rotate_all_checkbox_connection.blockSignals(False)
+
+    @Slot()
+    def sync_scale_all_connection(self, checked):
+        for checkbox in (self.scale_x_checkbox_connection, self.scale_y_checkbox_connection, self.scale_z_checkbox_connection):
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
+
+    @Slot()
+    def sync_scale_axis_connection(self, _checked):
+        all_checked = (self.scale_x_checkbox_connection.isChecked()
+                       and self.scale_y_checkbox_connection.isChecked()
+                       and self.scale_z_checkbox_connection.isChecked())
+        self.scale_all_checkbox_connection.blockSignals(True)
+        self.scale_all_checkbox_connection.setChecked(all_checked)
+        self.scale_all_checkbox_connection.blockSignals(False)
 
     @Slot()
     def reset_connection_options(self): 
@@ -1757,6 +1836,7 @@ class RiggingUtilityTool(QMainWindow):
         if checked:
             self.connection_axes_group.setChecked(False)
             self.driver_driven_group.setChecked(True)
+            
             
     def get_items_from_list(self, list_widget_object):
         object_paths = self.get_matching_side_paths(list_widget_object)
