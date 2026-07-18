@@ -31,7 +31,7 @@ class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Multi-Object Rigging Toolkit")
-        self.setGeometry(100, 100, 600, 900)
+        self.setGeometry(1000, 100, 600, 900)
         self.initUI()
 
     def initUI(self):
@@ -1083,7 +1083,6 @@ class RiggingUtilityTool(QMainWindow):
             else:
                 target_obj = []
             if not target_obj:
-                self.dialog_box_window("No matching target object found for suffix.")
                 return
         else:
             current_item = self.target_obj_list.currentItem()
@@ -1271,15 +1270,9 @@ class RiggingUtilityTool(QMainWindow):
         try:
             source_items = self.get_items_from_list(self.source_obj_list)
             target_objects = self.get_items_from_list(self.target_obj_list)
-            # print(source_items)
-            # print(target_objects)
-
             # Index into constraint_type_combobox: 0=Parent, 1=Point, 2=Orient, 3=Scale
-            # (must stay in sync with the addItem() order in constraint_tab_ui)
             constraint_type = self.constraint_type_combobox.currentIndex()
-            # print(constraint_type)
             maintain_offset_enabled = self.offset_radio_on.isChecked()
-            # print(maintain_offset_enabled)
 
             # these feed Maya's skip= args, so an empty list means "skip nothing" (constrain every axis)
             skip_translate = []
@@ -1365,7 +1358,6 @@ class RiggingUtilityTool(QMainWindow):
                 
                 suffix_name = self.suffix_lineedit.text().strip()
                 object_pairs = self.get_object_pairs_by_name_match(suffix_name, self.source_object_paths)
-                # print(object_pairs)
 
                 # connect constraints 
                 for source_item, target_obj in object_pairs:
@@ -1469,6 +1461,7 @@ class RiggingUtilityTool(QMainWindow):
                 return []
             target_row = self.target_obj_list.row(target_item)
             target_obj = self.target_object_paths[target_row]
+        
 
         driver_attr = driver_item.text().strip()
         driven_attr = driven_item.text().strip()
@@ -1485,6 +1478,7 @@ class RiggingUtilityTool(QMainWindow):
     def create_connections(self):
         cmds.undoInfo(openChunk=True)
         try:
+            # get the items on source, target object lists 
             source_items = self.get_items_from_list(self.source_obj_list)
             target_objects = self.get_items_from_list(self.target_obj_list)
 

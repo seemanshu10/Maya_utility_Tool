@@ -40,10 +40,13 @@ Object lists support loading the current Maya selection, reordering items (↑ /
 - Custom attribute connections between arbitrary driver/driven attribute pairs.
 - Disconnect existing connections from the Target list.
 
+![Constraint/Connection Tab](gifs\Constraint_connection_usage.gif)
 ### Copy Skin tab
 - Surface association: Closest Point, Ray Cast, or Closest Component.
 - Three configurable influence association fallbacks (None, Closest Bone, Closest Joint, One To One, Label, Name), matching Maya's `copySkinWeights` options.
 - Skips pairs cleanly when a source has no skin cluster instead of failing the whole batch.
+
+![Copy Skin Tab](gifs\copy_skinusage.gif)
 
 ## Installation
 
