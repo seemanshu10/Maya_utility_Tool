@@ -616,6 +616,7 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_z_checkbox_constraint.setChecked(True)
 
         # signals for constraints
+        
         self.translate_all_checkbox_constraint.toggled.connect(self.sync_translate_all_constraint)
         self.translate_x_checkbox_constraint.toggled.connect(self.sync_translate_axis_constraint)
         self.translate_y_checkbox_constraint.toggled.connect(self.sync_translate_axis_constraint)
@@ -631,13 +632,10 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_y_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
         self.scale_z_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
         self.reset_constraint.clicked.connect(self.reset_constraint_options)
+        
+        self.create_constraint_btn.clicked.connect(self.create_constraints)
 
-        self.create_constraint_btn.clicked.connect(
-            lambda: self.dialog_message_box(
-                "Create constraints confirmation", 
-                "Are you sure to create the constraints ?",
-                self.create_constraints))
-
+        # dialog Box is a cutom wrapper for Qmessagebox
         self.disconnect_constraint_btn.clicked.connect(
             lambda:self.dialog_message_box(
                 "Delete constraints confirmation",
@@ -844,12 +842,7 @@ class RiggingUtilityTool(QMainWindow):
         self.radio_button_name.toggled.connect(self.update_driver_driven_listwidget_name)
         self.driven_combobox.currentTextChanged.connect(self.update_driver_driven_listwidget_name)
 
-        self.create_connection_button.clicked.connect(
-            lambda: self.dialog_message_box(
-                "Create connections confirmation", 
-                "Are you sure to create the connections ?",
-                self.create_connections))
-
+        self.create_connection_button.clicked.connect(self.create_connections)
         self.disconnect_connection_button.clicked.connect(
             lambda:self.dialog_message_box(
                 "Delete connections confirmation",
@@ -1148,7 +1141,7 @@ class RiggingUtilityTool(QMainWindow):
         summary = "Added {} objects to the list.".format(added_count)
         if skipped:
             summary += "\nSkipped {}: {}".format(len(skipped), ", ".join(skipped))
-        self.dialog_box_window(summary)
+        # self.dialog_box_window(summary)
     
     @Slot()
     def on_match_by_name_toggled(self, checked):
@@ -1196,7 +1189,6 @@ class RiggingUtilityTool(QMainWindow):
         object_paths = self.get_matching_side_paths(list_widget_object)
         object_paths[row - 1], object_paths[row] = object_paths[row], object_paths[row - 1]
        
-
     @Slot()
     def move_selected_item_down(self, list_widget_object):
         row = list_widget_object.currentRow()
@@ -1876,14 +1868,13 @@ class RiggingUtilityTool(QMainWindow):
                     print(f"Unable to disconnect {connection_attributes[connection_index]} -> {connection_attributes[connection_index + 1]}: {exc}")
 
         if disconnected_any:
-            self.dialog_box_window("Disconnected matching connections.")
+            print("Deleted Connections")
         else:
-            self.dialog_box_window("No matching connections found to disconnect.")
+            print("No matching connections found to disconnect.")
 
     @Slot()
     def delete_constraints(self):
         source_objects = self.get_items_from_list(self.source_obj_list)
-        deleted_any = False
 
         for source_obj in source_objects:
             # A constraint node takes the source's transform as input, so it shows up
@@ -1891,12 +1882,10 @@ class RiggingUtilityTool(QMainWindow):
             constraints = cmds.listConnections(source_obj, type="constraint") or []
             if constraints:
                 cmds.delete(constraints)
-                deleted_any = True
 
-        if deleted_any:
-            self.dialog_box_window("Deleted target constraints.")
-        else:
-            self.dialog_box_window("No constraints found on target objects.")
+        print("Deleted Constraints")
+
+
 
     # connection_axes_group and driver_driven_group are two independent checkable
     # QGroupBoxes acting like a 2-way radio button: enabling one turns the other off.
@@ -1935,6 +1924,4 @@ def show_window():
     maya_main_window = get_maya_main_window()
     my_window = RiggingUtilityTool(parent=maya_main_window)
     my_window.show()
-
-
 
