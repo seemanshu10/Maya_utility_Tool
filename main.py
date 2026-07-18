@@ -1,5 +1,15 @@
+"""
+Multi-Object Rigging Toolkit: batch-creates constraints, connects attributes, and copies skin weights between a "Source" object list and a "Target" object list.
+
+Source/Target pairing has two mutually exclusive modes, chosen with radio button:
+  - Order: positional pairing, source[i] -> target[i]
+  - Name:  each source is paired with a target found by stripping the source's trailing and appending a suffix, searched within the source's
+    own top-level group.
+
+"""
+
 from PySide2.QtWidgets import (QMainWindow, QPushButton, QWidget, QGridLayout,
-                               QLabel, QListWidget, QListWidgetItem, QHBoxLayout, QVBoxLayout,
+                               QLabel, QListWidget, QHBoxLayout, QVBoxLayout,
                                QRadioButton, QTabWidget, QComboBox, QGroupBox,
                                QCheckBox, QFormLayout, QLineEdit, QFrame, QMessageBox)
 
@@ -16,6 +26,7 @@ def get_maya_main_window():
     main_window_ptr = omui.MQtUtil.mainWindow()
     return shiboken2.wrapInstance(int(main_window_ptr), QWidget)
 
+
 class RiggingUtilityTool(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -29,9 +40,9 @@ class RiggingUtilityTool(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_ui()
-        self.constraint_tab_ui()
-        self.connection_tab_ui()
-        self.copyskin_tab_ui()
+        self.constraint_tab_ui()    # constraint tab creation
+        self.connection_tab_ui()    # connection tab creation
+        self.copyskin_tab_ui()      # copy skin Tab creation
         self.apply_theme()
 
     def apply_theme(self):
@@ -274,16 +285,16 @@ class RiggingUtilityTool(QMainWindow):
             }
         """)
 
-    def set_status_message(self, message):
+    def dialog_box_window(self, message):
         print(message)
+        # convention: prefix a message with "ERROR" to get a critical dialog instead of an info one
         if message.upper().startswith("ERROR"):
             QMessageBox.critical(self, "Error", message)
         else:
             QMessageBox.information(self, "Completed", message)
 
-
     def primary_button(self, text):
-
+        # creating Qpush Buttons 
         new_push_button = QPushButton(text)
         return new_push_button
 
@@ -409,9 +420,6 @@ class RiggingUtilityTool(QMainWindow):
 
         self.match_group_offset = QGroupBox()
         self.match_group_offset.setToolTip("Match by Order: Will Use Relationship on one to one \nMatch by Name: Will Use source objects and suffix to find the target objects ")
-        # self.match_group_offset.setSizePolicy
-        # self.match_group_offset.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        # creating Relationship by order 
         self.match_group = QHBoxLayout()
 
         # Reduce the space around the layout
@@ -623,8 +631,6 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_y_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
         self.scale_z_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
         self.reset_constraint.clicked.connect(self.reset_constraint_options)
-        # self.disconnect_constraint_btn.clicked.connect(self.delete_constraints)
-        # self.create_constraint_btn.clicked.connect(self.create_constraints)
 
         self.create_constraint_btn.clicked.connect(
             lambda: self.dialog_message_box(
@@ -799,14 +805,7 @@ class RiggingUtilityTool(QMainWindow):
         self.driver_driven_group.toggled.connect(self.driver_driven_connection_axes_enable)
         self.connection_axes_group.toggled.connect(self.connection_axes_enabled)
 
-        # signals For Populating cutom attributes 
-        # self.source_obj_list.itemSelectionChanged.connect(
-        #     lambda: self.populate_custom_attributes(self.source_obj_list, self.driver_attrs_listwidget)
-        # )
-        # self.target_obj_list.itemSelectionChanged.connect(
-        #     lambda: self.populate_custom_attributes(self.target_obj_list, self.driven_attrs_listwidget)
-        # )
-
+     
         self.source_obj_list.itemSelectionChanged.connect(
             lambda: self.update_driver_driven_listwidget_order(
                 self.source_obj_list,
@@ -946,8 +945,8 @@ class RiggingUtilityTool(QMainWindow):
 
     def get_translations(self, current_object):
         # Return all translated names
+        # unlocked=True skips locked attrs, since connectAttr/constraints can't target them anyway
         custom_attributes = cmds.listAttr(current_object, keyable=True, unlocked=True)
-        # print(custom_attributes)
 
         transform_attrs = {
             "translateX", "translateY", "translateZ",
@@ -974,12 +973,14 @@ class RiggingUtilityTool(QMainWindow):
         return custom_attributes
     
     def get_object_pairs_by_name_match(self, suffix, source_items):
-        # source_items is a list of full DAG paths (identity is the path,
-        # not the short name, so duplicate leaf names can't collide here).
+        # source_items is a list of full DAG paths 
         object_pairs = []
         for source_item in source_items:
+            # full DAG paths start with "|", so split[0] it 
             top_level_group = source_item.split("|")[1]
             source_short_name = source_item.rsplit("|", 1)[-1]
+            # Naming convention: drop the source's trailing "_<token>" 
+            # and rebuild the target name as "<base><suffix>" 
             source_base_name = source_short_name.rsplit("_", 1)[0]
             target_name = f"{source_base_name}{suffix}"
             # print(target_name)
@@ -992,15 +993,33 @@ class RiggingUtilityTool(QMainWindow):
 
             object_pairs.append((source_item, target_obj))
         return object_pairs
-    
+
+    def get_object_pairs_by_order(self, source_items, target_objects):
+      
+        if len(source_items) == 1 and len(target_objects) > 1:
+            print("One source object mapped to {} target objects.".format(len(target_objects)))
+            object_pairs = []
+            for target_obj in target_objects:
+                object_pairs.append((source_items[0], target_obj))
+            return object_pairs
+
+        if len(source_items) != len(target_objects):
+            return None
+
+        object_pairs = []
+        for index in range(len(source_items)):
+            object_pairs.append((source_items[index], target_objects[index]))
+        return object_pairs
+
     def get_matching_side_paths(self, list_widget_object):
+        # Returns the full-path list that mirrors this widget's own rows(source widget->source paths,target widget->target paths)
         if list_widget_object is self.source_obj_list:
             return self.source_object_paths
         if list_widget_object is self.target_obj_list:
             return self.target_object_paths
 
-
     def get_opposite_side_paths(self, list_widget_object):
+        # this is getting what the source and target objects list contains so it can be checked if objects are already added in the other side 
         if list_widget_object is self.source_obj_list:
             return self.target_object_paths
         if list_widget_object is self.target_obj_list:
@@ -1021,6 +1040,7 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def update_driver_driven_listwidget_order(self, list_widget, target_list_widget, driver_driven_combobox_value):
+        # Repopulates the driver/driven attribute list for whatever object is currently selected in list_widget. Wired to both source and target list
         current_item = list_widget.currentItem()
         if not current_item:
             return
@@ -1042,6 +1062,9 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def update_driver_driven_listwidget_name(self):
+        # Name-match counterpart to update_driver_driven_listwidget_order above. The
+        # target isn't selected from a list here - it's resolved from the selected
+    
         if self.radio_button_name.isChecked():
             current_item = self.source_obj_list.currentItem()
             if not current_item:
@@ -1060,7 +1083,7 @@ class RiggingUtilityTool(QMainWindow):
             else:
                 target_obj = []
             if not target_obj:
-                self.set_status_message("No matching target object found for suffix.")
+                self.dialog_box_window("No matching target object found for suffix.")
                 return
         else:
             current_item = self.target_obj_list.currentItem()
@@ -1073,11 +1096,14 @@ class RiggingUtilityTool(QMainWindow):
             self.driven_attrs_listwidget.clear()
 
         driven_combobox_value = self.driven_combobox.currentText()
-        if driven_combobox_value == "Default":
+        """
+        driven_combobox's actual items are "Default Attributes","Custom Attributes","All Attributes"
+        """
+        if driven_combobox_value == "Default Attributes":
             items = self.get_translations(target_obj)
-        elif driven_combobox_value == "Custom":
+        elif driven_combobox_value == "Custom Attributes":
             items = self.get_custom_items(target_obj)
-        elif driven_combobox_value == "All":
+        elif driven_combobox_value == "All Attributes":
             items = self.get_all_items(target_obj)
         else:
             items = []
@@ -1089,7 +1115,7 @@ class RiggingUtilityTool(QMainWindow):
         selected_items = cmds.ls(selection=True, long=True) or []
         if not selected_items:
             cmds.warning("No objects selected in Maya.")
-            self.set_status_message("ERROR: No objects selected in Maya.")
+            self.dialog_box_window("ERROR: No objects selected in Maya.")
             return
 
         object_paths = self.get_matching_side_paths(list_widget_object)
@@ -1123,10 +1149,19 @@ class RiggingUtilityTool(QMainWindow):
         summary = "Added {} objects to the list.".format(added_count)
         if skipped:
             summary += "\nSkipped {}: {}".format(len(skipped), ", ".join(skipped))
-        self.set_status_message(summary)
+        self.dialog_box_window(summary)
     
     @Slot()
     def on_match_by_name_toggled(self, checked):
+        """
+        checked = Name mode: target is resolved automatically from source + suffix,
+        so the manual target-list controls are disabled and the suffix box is
+        enabled; 
+        unchecked = Order mode, the reverse. Both branches below apply the
+        same enable/disable state - the only real difference is clearing the driven
+        attribute list when switching into Name mode, since the previous
+        target-based selection no longer applies.
+        """
         if checked:
             self.target_obj_list.setEnabled(not checked)
             self.load_target_obj_button.setEnabled(not checked)
@@ -1135,7 +1170,6 @@ class RiggingUtilityTool(QMainWindow):
             self.target_move_down_btn.setEnabled(not checked)
             self.suffix_lineedit.setEnabled(checked)
             self.driven_attrs_listwidget.clear()
-            self.set_status_message("Driven attribute list cleared.")
         else:
             self.target_obj_list.setEnabled(not checked)
             self.load_target_obj_button.setEnabled(not checked)
@@ -1149,8 +1183,8 @@ class RiggingUtilityTool(QMainWindow):
         list_widget_object.clear()
         self.get_matching_side_paths(list_widget_object).clear()
         print(f"List Box Cleared")
-        # self.set_status_message("List box cleared.")
 
+    # The widget only displays short names, so any reorder must apply the same index change to the parallel object_paths list (get_matching_side_paths)
     @Slot()
     def move_selected_item_up(self, list_widget_object):
         row = list_widget_object.currentRow()
@@ -1162,7 +1196,7 @@ class RiggingUtilityTool(QMainWindow):
 
         object_paths = self.get_matching_side_paths(list_widget_object)
         object_paths[row - 1], object_paths[row] = object_paths[row], object_paths[row - 1]
-        self.set_status_message("Selected Object Moved Up.")
+       
 
     @Slot()
     def move_selected_item_down(self, list_widget_object):
@@ -1176,8 +1210,12 @@ class RiggingUtilityTool(QMainWindow):
 
         object_paths = self.get_matching_side_paths(list_widget_object)
         object_paths[row], object_paths[row + 1] = object_paths[row + 1], object_paths[row]
-        self.set_status_message("Selected Object Moved Down.")
 
+
+    # Keeps "All" and the X/Y/Z checkboxes in sync without disabling anything.
+    # blockSignals prevents each setChecked() below from re-triggering these
+    # same handlers and causing a feedback loop (same pattern repeats for
+    # rotate/scale below, and again for the *_connection versions further down).
     @Slot()
     def sync_translate_all_constraint(self, checked):
         for checkbox in (self.translate_x_checkbox_constraint, self.translate_y_checkbox_constraint, self.translate_z_checkbox_constraint):
@@ -1186,12 +1224,12 @@ class RiggingUtilityTool(QMainWindow):
             checkbox.blockSignals(False)
 
     @Slot()
-    def sync_translate_axis_constraint(self, _checked):
-        all_checked = (self.translate_x_checkbox_constraint.isChecked()
+    def sync_translate_axis_constraint(self, checked):
+        allchecked = (self.translate_x_checkbox_constraint.isChecked()
                        and self.translate_y_checkbox_constraint.isChecked()
                        and self.translate_z_checkbox_constraint.isChecked())
         self.translate_all_checkbox_constraint.blockSignals(True)
-        self.translate_all_checkbox_constraint.setChecked(all_checked)
+        self.translate_all_checkbox_constraint.setChecked(allchecked)
         self.translate_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
@@ -1202,12 +1240,12 @@ class RiggingUtilityTool(QMainWindow):
             checkbox.blockSignals(False)
 
     @Slot()
-    def sync_rotate_axis_constraint(self, _checked):
-        all_checked = (self.rotate_x_checkbox_constraint.isChecked()
+    def sync_rotate_axis_constraint(self, checked):
+        allchecked = (self.rotate_x_checkbox_constraint.isChecked()
                        and self.rotate_y_checkbox_constraint.isChecked()
                        and self.rotate_z_checkbox_constraint.isChecked())
         self.rotate_all_checkbox_constraint.blockSignals(True)
-        self.rotate_all_checkbox_constraint.setChecked(all_checked)
+        self.rotate_all_checkbox_constraint.setChecked(allchecked)
         self.rotate_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
@@ -1218,16 +1256,17 @@ class RiggingUtilityTool(QMainWindow):
             checkbox.blockSignals(False)
 
     @Slot()
-    def sync_scale_axis_constraint(self, _checked):
-        all_checked = (self.scale_x_checkbox_constraint.isChecked()
+    def sync_scale_axis_constraint(self, checked):
+        allchecked = (self.scale_x_checkbox_constraint.isChecked()
                        and self.scale_y_checkbox_constraint.isChecked()
                        and self.scale_z_checkbox_constraint.isChecked())
         self.scale_all_checkbox_constraint.blockSignals(True)
-        self.scale_all_checkbox_constraint.setChecked(all_checked)
+        self.scale_all_checkbox_constraint.setChecked(allchecked)
         self.scale_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
     def create_constraints(self):
+        # openChunk/closeChunk group every constraint created below into one undo step
         cmds.undoInfo(openChunk=True)
         try:
             source_items = self.get_items_from_list(self.source_obj_list)
@@ -1235,11 +1274,14 @@ class RiggingUtilityTool(QMainWindow):
             # print(source_items)
             # print(target_objects)
 
+            # Index into constraint_type_combobox: 0=Parent, 1=Point, 2=Orient, 3=Scale
+            # (must stay in sync with the addItem() order in constraint_tab_ui)
             constraint_type = self.constraint_type_combobox.currentIndex()
             # print(constraint_type)
             maintain_offset_enabled = self.offset_radio_on.isChecked()
             # print(maintain_offset_enabled)
 
+            # these feed Maya's skip= args, so an empty list means "skip nothing" (constrain every axis)
             skip_translate = []
             skip_rotate = []
             skip_scale = []
@@ -1267,50 +1309,48 @@ class RiggingUtilityTool(QMainWindow):
                     skip_scale.append("y")
                 if not self.scale_z_checkbox_constraint.isChecked():
                     skip_scale.append("z")
-                    
-            # print(f" translate {skip_translate}")
-            # print(f" rotate {skip_rotate}")
-            # print(f" rotate {skip_scale}")
-
+    
             # match by order 
             if self.radio_button_order.isChecked():
 
                 if not source_items or not target_objects:
                     print("Source and Target object lists need to be populated.")
-                    self.set_status_message("ERROR: Source and Target object lists need to be populated.")
-
-                if len(source_items) != len(target_objects):
-                    cmds.warning("Source and Target lists must contain the same number of objects.")
-                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                    self.dialog_box_window("ERROR: Source and Target object lists need to be populated.")
                     return
 
-                for index in range(len(source_items)):
+                object_pairs = self.get_object_pairs_by_order(source_items, target_objects)
+                if object_pairs is None:
+                    cmds.warning("Source and Target lists must contain the same number of objects.")
+                    self.dialog_box_window("ERROR: Source and Target lists must contain the same number of objects.")
+                    return
+
+                for source_item, target_obj in object_pairs:
                     if constraint_type == 0:
                         cmds.parentConstraint(
-                            source_items[index],
-                            target_objects[index],
+                            source_item,
+                            target_obj,
                             mo=maintain_offset_enabled,
                             skipTranslate=skip_translate,
                             skipRotate=skip_rotate
                             )
                     elif constraint_type == 1:
                         cmds.pointConstraint(
-                            source_items[index],
-                            target_objects[index],
+                            source_item,
+                            target_obj,
                             mo=maintain_offset_enabled,
                             skip=skip_translate
                             )
                     if constraint_type == 2:
                         cmds.orientConstraint(
-                            source_items[index],
-                            target_objects[index],
+                            source_item,
+                            target_obj,
                             mo=maintain_offset_enabled,
                             skip=skip_rotate
                             )
                     if constraint_type == 3:
                         cmds.scaleConstraint(
-                            source_items[index],
-                            target_objects[index],
+                            source_item,
+                            target_obj,
                             mo=maintain_offset_enabled,
                             skip=skip_scale
                             )
@@ -1320,7 +1360,7 @@ class RiggingUtilityTool(QMainWindow):
                 # Only the source list is Checked if it is filled
                 if not source_items:
                     cmds.warning("Source object list needs to be populated.")
-                    self.set_status_message("ERROR: Source object list needs to be populated.")
+                    self.dialog_box_window("ERROR: Source object list needs to be populated.")
                     return
                 
                 suffix_name = self.suffix_lineedit.text().strip()
@@ -1342,14 +1382,14 @@ class RiggingUtilityTool(QMainWindow):
                         cmds.orientConstraint(source_item, target_obj, mo=maintain_offset_enabled, skip=skip_rotate)
                     if constraint_type == 3:
                         cmds.scaleConstraint(source_item, target_obj, mo=maintain_offset_enabled, skip=skip_scale)  
-            self.set_status_message("Constraints completed")
-                        # print(target_dict)
+            self.dialog_box_window("Constraints completed")
+                
 
         finally:
             cmds.undoInfo(closeChunk=True)
         
-
     def connect_attrs(self, source_item, target_obj, connection_attrs):
+        # Connects each attribute individually so one missing/locked attribute only skips itself instead of aborting the whole batch for this object pair
         if not cmds.objExists(source_item):
             cmds.warning("Source object {} does not exist.".format(source_item))
             return
@@ -1357,8 +1397,8 @@ class RiggingUtilityTool(QMainWindow):
             cmds.warning("Target object {} does not exist.".format(target_obj))
             return
 
-        for attr in connection_attrs:
-            attr = attr.strip()
+        for attribute in connection_attrs:
+            attr = attribute.strip()
             if not attr:
                 continue
 
@@ -1376,6 +1416,7 @@ class RiggingUtilityTool(QMainWindow):
         print("Connected {} -> {}".format(source_item, target_obj))
 
     def connect_selected_custom_attribute(self, source_item, target_obj, driver_attr, driven_attr):
+        # Single-pair counterpart to connect_attrs, used by the custom driver/driven attribute mode where the source and target attribute names can differ
         if not cmds.objExists(source_item):
             cmds.warning("Source object {} does not exist.".format(source_item))
             return
@@ -1396,10 +1437,13 @@ class RiggingUtilityTool(QMainWindow):
         print("Connected {} -> {}".format(source_attr, target_attr))
 
     def get_selected_custom_attributes(self):
+        # Resolves the single currently-selected driver/driven attribute pair, returned
         source_item = self.source_obj_list.currentItem()
         driver_item = self.driver_attrs_listwidget.currentItem()
         driven_item = self.driven_attrs_listwidget.currentItem()
 
+        # Nothing to connect unless a source object and one attribute in each of the
+        # driver/driven list widgets are all selected at the same time
         if not source_item or not driver_item or not driven_item:
             return []
 
@@ -1407,6 +1451,7 @@ class RiggingUtilityTool(QMainWindow):
         source_obj = self.source_object_paths[source_row]
 
         if self.radio_button_name.isChecked():
+            # Name mode: resolve the target the same way update_driver_driven_listwidget_name
             suffix_name = self.suffix_lineedit.text().strip()
             if not suffix_name:
                 return []
@@ -1418,6 +1463,7 @@ class RiggingUtilityTool(QMainWindow):
             if not target_obj:
                 return []
         else:
+            # Order mode: target comes directly from whatever is selected in target_obj_list
             target_item = self.target_obj_list.currentItem()
             if not target_item:
                 return []
@@ -1427,6 +1473,7 @@ class RiggingUtilityTool(QMainWindow):
         driver_attr = driver_item.text().strip()
         driven_attr = driven_item.text().strip()
 
+        # Belt-and-braces re-check now that target_obj and both attr names are resolved
         if not source_obj or not target_obj or not driver_attr or not driven_attr:
             return []
 
@@ -1476,41 +1523,45 @@ class RiggingUtilityTool(QMainWindow):
                         scale_attrs.append("scaleZ")
 
                 connection_attrs = translate_attrs + rotate_attrs + scale_attrs
+                # Always empty on this path - custom attribute connections are handled
+                # entirely by the driver_driven_group branch below, which returns
+                # early. Kept only so the "anything to connect" check further down has
+                # something to test.
                 custom_attrs = []
             elif self.driver_driven_group.isChecked():
                 selected_pairs = self.get_selected_custom_attributes()
                 if not selected_pairs:
-                    self.set_status_message("ERROR: Select driver and driven attributes.")
+                    self.dialog_box_window("ERROR: Select driver and driven attributes.")
                     return
 
                 for source_obj, target_obj, driver_attr, driven_attr in selected_pairs:
                     self.connect_selected_custom_attribute(source_obj, target_obj, driver_attr, driven_attr)
 
-                self.set_status_message("Connections done.")
+                self.dialog_box_window("Connections done.")
                 return
             else:
-                self.set_status_message("ERROR: Select a connection section to run.")
+                self.dialog_box_window("ERROR: Select a connection section to run.")
                 return
 
             if not connection_attrs and not custom_attrs:
                 cmds.warning("No translate/rotate/scale channels or custom attributes selected to connect.")
-                self.set_status_message("ERROR: No channels or custom attributes selected to connect.")
+                self.dialog_box_window("ERROR: No channels or custom attributes selected to connect.")
                 return
 
             # match by order
             if self.radio_button_order.isChecked():
                 if not source_items or not target_objects:
                     print("Source and Target object lists need to be populated.")
-                    self.set_status_message("ERROR: Source and Target object lists need to be populated.")
+                    self.dialog_box_window("ERROR: Source and Target object lists need to be populated.")
                     return
 
-                if len(source_items) != len(target_objects):
+                object_pairs = self.get_object_pairs_by_order(source_items, target_objects)
+                if object_pairs is None:
                     cmds.warning("Source and Target lists must contain the same number of objects.")
-                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                    self.dialog_box_window("ERROR: Source and Target lists must contain the same number of objects.")
                     return
 
-                for index, source_obj in enumerate(source_items):
-                    target_obj = target_objects[index]
+                for source_obj, target_obj in object_pairs:
                     if connection_attrs:
                         self.connect_attrs(source_obj, target_obj, connection_attrs)
                     if custom_attrs:
@@ -1520,7 +1571,7 @@ class RiggingUtilityTool(QMainWindow):
             else:
                 if not source_items:
                     cmds.warning("Source object list needs to be populated.")
-                    self.set_status_message("ERROR: Source object list needs to be populated.")
+                    self.dialog_box_window("ERROR: Source object list needs to be populated.")
                     return
 
                 suffix_name = self.suffix_lineedit.text().strip()
@@ -1537,7 +1588,7 @@ class RiggingUtilityTool(QMainWindow):
                     if custom_attrs:
                         self.connect_attrs(source_obj, target_obj, custom_attrs)
 
-            self.set_status_message("Connections done.")
+            self.dialog_box_window("Connections done.")
         finally:
             cmds.undoInfo(closeChunk=True)
 
@@ -1548,6 +1599,8 @@ class RiggingUtilityTool(QMainWindow):
         if not cmds.objExists(source_objects):
             return False
 
+        # skinCluster is upstream deformation history, not a direct attribute of the
+        # mesh, so we have to search history for one rather than querying it directly
         history_of_skin = cmds.listHistory(source_objects)
         skin_clusters = cmds.ls(history_of_skin, type="skinCluster")
 
@@ -1566,7 +1619,9 @@ class RiggingUtilityTool(QMainWindow):
 
         target_skin = cmds.ls(cmds.listHistory(target_obj), type="skinCluster")
         if not target_skin:
+            # target has no skinCluster yet - bind it to the source's influences before copying weights
             influences_joint_source = cmds.skinCluster(source_skin, q=True, influence=True)
+            # bindMethod/skinMethod barely matter here - copySkinWeights 
             target_skin = cmds.skinCluster(
                 influences_joint_source, 
                 target_obj, 
@@ -1595,6 +1650,7 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def copy_skins(self):
+        # contains the core logic for copy skin wts and its validations 
         cmds.undoInfo(openChunk=True)
         try:
             source_objects = self.get_items_from_list(self.source_obj_list)
@@ -1610,6 +1666,8 @@ class RiggingUtilityTool(QMainWindow):
             else:
                 association_type = "closestPoint"
 
+            # association settings on surface association 
+            # Maps the combobox labels to the keywords copySkinWeights' influenceAssociation expects
             association_map = {
                 "Closest Joint": "closestJoint",
                 "Closest Bone": "closestBone",
@@ -1618,6 +1676,9 @@ class RiggingUtilityTool(QMainWindow):
                 "One To One": "oneToOne",
             }
 
+            # copySkinWeights tries each influenceAssociation entry in order as a
+            # fallback until influences resolve; "None" means "skip this fallback
+            # slot" rather than being passed through, since it isn't a valid Maya keyword
             influence_association_list = []
             for combo in (self.influence_combo_box_1, self.influence_combo_box_2, self.influence_combo_box_3):
                 influence_text = combo.currentText()
@@ -1625,24 +1686,29 @@ class RiggingUtilityTool(QMainWindow):
                     continue
                 influence_association_list.append(association_map[influence_text])
 
+            # tallied instead of shown per-object, so a batch copy ends in one summary
+            # dialog rather than a stack of popups the user has to click through
             copied_count = 0
             skipped = []
 
             # match by order
             if self.radio_button_order.isChecked():
+                # NOTE: uses "and" here, unlike the equivalent guards in
+                # create_constraints/create_connections which use "or" - if both
+                # lists are empty this check is skipped and the loop below silently
+                # "copies" 0 objects instead of erroring
                 if not source_objects and target_objects:
                     print("Source and Target object lists need to be populated.")
-                    self.set_status_message("ERROR: Source and Target object lists need to be populated.")
+                    self.dialog_box_window("ERROR: Source and Target object lists need to be populated.")
                     return
 
-                if len(source_objects) != len(target_objects):
+                object_pairs = self.get_object_pairs_by_order(source_objects, target_objects)
+                if object_pairs is None:
                     cmds.warning("Source and Target lists must contain the same number of objects.")
-                    self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                    self.dialog_box_window("ERROR: Source and Target lists must contain the same number of objects.")
                     return
 
-                for index in range(len(source_objects)):
-                    source_obj = source_objects[index]
-                    target_obj = target_objects[index]
+                for source_obj, target_obj in object_pairs:
                     if not self.has_skin_cluster(source_obj):
                         cmds.warning("{} has no skinCluster.".format(source_obj))
                         skipped.append("{} (no skinCluster)".format(source_obj))
@@ -1656,12 +1722,11 @@ class RiggingUtilityTool(QMainWindow):
             else:
                 if not source_objects:
                     cmds.warning("Source object list needs to be populated.")
-                    self.set_status_message("ERROR: Source object list needs to be populated.")
+                    self.dialog_box_window("ERROR: Source object list needs to be populated.")
                     return
 
                 suffix_name = self.suffix_lineedit.text().strip()
                 object_pairs = self.get_object_pairs_by_name_match(suffix_name, self.source_object_paths)
-                # print(object_pairs)
 
                 for source_obj, target_obj in object_pairs:
                     if not self.has_skin_cluster(source_obj):
@@ -1673,7 +1738,8 @@ class RiggingUtilityTool(QMainWindow):
                         cmds.warning("{} does not exist.".format(target_obj))
                         skipped.append("{} (target missing)".format(target_obj))
                         continue
-
+                    
+                    # copy skin weghts command 
                     if self.copy_skin_weights_to_mesh(source_obj, target_obj, association_type, influence_association_list):
                         copied_count += 1
                     else:
@@ -1682,7 +1748,7 @@ class RiggingUtilityTool(QMainWindow):
             summary = "Copied skin weights for {} object(s).".format(copied_count)
             if skipped:
                 summary += "\nSkipped {}: {}".format(len(skipped), ", ".join(skipped))
-            self.set_status_message(summary)
+            self.dialog_box_window(summary)
         finally:
             cmds.undoInfo(closeChunk=True)
 
@@ -1695,11 +1761,11 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def sync_translate_axis_connection(self, checked):
-        all_checked = (self.translate_x_checkbox_connection.isChecked()
+        allchecked = (self.translate_x_checkbox_connection.isChecked()
                        and self.translate_y_checkbox_connection.isChecked()
                        and self.translate_z_checkbox_connection.isChecked())
         self.translate_all_checkbox_connection.blockSignals(True)
-        self.translate_all_checkbox_connection.setChecked(all_checked)
+        self.translate_all_checkbox_connection.setChecked(allchecked)
         self.translate_all_checkbox_connection.blockSignals(False)
 
     @Slot()
@@ -1711,11 +1777,11 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def sync_rotate_axis_connection(self, checked):
-        all_checked = (self.rotate_x_checkbox_connection.isChecked()
+        allchecked = (self.rotate_x_checkbox_connection.isChecked()
                        and self.rotate_y_checkbox_connection.isChecked()
                        and self.rotate_z_checkbox_connection.isChecked())
         self.rotate_all_checkbox_connection.blockSignals(True)
-        self.rotate_all_checkbox_connection.setChecked(all_checked)
+        self.rotate_all_checkbox_connection.setChecked(allchecked)
         self.rotate_all_checkbox_connection.blockSignals(False)
 
     @Slot()
@@ -1726,28 +1792,34 @@ class RiggingUtilityTool(QMainWindow):
             checkbox.blockSignals(False)
 
     @Slot()
-    def sync_scale_axis_connection(self, _checked):
-        all_checked = (self.scale_x_checkbox_connection.isChecked()
+    def sync_scale_axis_connection(self, checked):
+        allchecked = (self.scale_x_checkbox_connection.isChecked()
                        and self.scale_y_checkbox_connection.isChecked()
                        and self.scale_z_checkbox_connection.isChecked())
         self.scale_all_checkbox_connection.blockSignals(True)
-        self.scale_all_checkbox_connection.setChecked(all_checked)
+        self.scale_all_checkbox_connection.setChecked(allchecked)
         self.scale_all_checkbox_connection.blockSignals(False)
 
+    # These reset the axis to default values 
     @Slot()
-    def reset_connection_options(self): 
+    def reset_connection_options(self):
+        # Only the "All" boxes need to be set - each one's toggled signal runs the
         self.translate_all_checkbox_connection.setChecked(True)
         self.rotate_all_checkbox_connection.setChecked(True)
         self.scale_all_checkbox_connection.setChecked(True)
 
     @Slot()
     def reset_constraint_options(self):
+        # Only the "All" boxes need to be set - each one's toggled signal runs the
+        # matching sync_*_all_* handler above, which cascades the checked state down
+        # to the X/Y/Z boxes automatically.
         self.translate_all_checkbox_constraint.setChecked(True)
         self.rotate_all_checkbox_constraint.setChecked(True)
         self.scale_all_checkbox_constraint.setChecked(True)
 
     @Slot()
     def disconnect_connections(self):
+        # this is responsible for disconnecting connections that were created 
         disconnected_any = False
         source_objects = self.get_items_from_list(self.source_obj_list)
         object_pairs = []
@@ -1758,22 +1830,20 @@ class RiggingUtilityTool(QMainWindow):
 
             if not source_objects or not target_objects:
                 print("Source and Target object lists need to be populated.")
-                self.set_status_message("ERROR: Source and Target object lists need to be populated.")
+                self.dialog_box_window("ERROR: Source and Target object lists need to be populated.")
                 return
 
-            if len(source_objects) != len(target_objects):
+            object_pairs = self.get_object_pairs_by_order(source_objects, target_objects)
+            if object_pairs is None:
                 cmds.warning("Source and Target lists must contain the same number of objects.")
-                self.set_status_message("ERROR: Source and Target lists must contain the same number of objects.")
+                self.dialog_box_window("ERROR: Source and Target lists must contain the same number of objects.")
                 return
-
-            for index in range(len(source_objects)):
-                object_pairs.append((source_objects[index], target_objects[index]))
 
         # Match by name
         else:
             if not source_objects:
                 cmds.warning("Source object list needs to be populated.")
-                self.set_status_message("ERROR: Source object list needs to be populated.")
+                self.dialog_box_window("ERROR: Source object list needs to be populated.")
                 return
 
             suffix_name = self.suffix_lineedit.text().strip()
@@ -1785,6 +1855,10 @@ class RiggingUtilityTool(QMainWindow):
             if not cmds.objExists(source_obj) or not cmds.objExists(target_obj):
                 continue
 
+            # NOTE: this looks up ALL outgoing connections from source_obj, not just
+            # the ones feeding target_obj specifically - target_obj above is only
+            # used for the existence check, so a source driving multiple objects
+            # gets fully disconnected from all of them here, not just this pair
             connection_attributes = cmds.listConnections(
                 source_obj, 
                 destination=True, 
@@ -1793,6 +1867,8 @@ class RiggingUtilityTool(QMainWindow):
                 connections=True
                 ) or []
 
+            # connections=True returns a flat list of alternating
+            # [source_plug, destination_plug] pairs, so step through two at a time
             for connection_index in range(0, len(connection_attributes), 2):
                 try:
                     cmds.disconnectAttr(
@@ -1806,9 +1882,9 @@ class RiggingUtilityTool(QMainWindow):
                     print(f"Unable to disconnect {connection_attributes[connection_index]} -> {connection_attributes[connection_index + 1]}: {exc}")
 
         if disconnected_any:
-            self.set_status_message("Disconnected matching connections.")
+            self.dialog_box_window("Disconnected matching connections.")
         else:
-            self.set_status_message("No matching connections found to disconnect.")
+            self.dialog_box_window("No matching connections found to disconnect.")
 
     @Slot()
     def delete_constraints(self):
@@ -1816,16 +1892,20 @@ class RiggingUtilityTool(QMainWindow):
         deleted_any = False
 
         for source_obj in source_objects:
+            # A constraint node takes the source's transform as input, so it shows up
+            # as a connection on source_obj even though it's the target it actually drives
             constraints = cmds.listConnections(source_obj, type="constraint") or []
             if constraints:
                 cmds.delete(constraints)
                 deleted_any = True
 
         if deleted_any:
-            self.set_status_message("Deleted target constraints.")
+            self.dialog_box_window("Deleted target constraints.")
         else:
-            self.set_status_message("No constraints found on target objects.")
+            self.dialog_box_window("No constraints found on target objects.")
 
+    # connection_axes_group and driver_driven_group are two independent checkable
+    # QGroupBoxes acting like a 2-way radio button: enabling one turns the other off.
     @Slot()
     def connection_axes_enabled(self, checked):
         if checked:
@@ -1837,9 +1917,10 @@ class RiggingUtilityTool(QMainWindow):
         if checked:
             self.connection_axes_group.setChecked(False)
             self.driver_driven_group.setChecked(True)
-            
-            
+               
     def get_items_from_list(self, list_widget_object):
+        # The widget itself only displays short names; the authoritative full DAG
+        # paths live in the parallel object_paths list, indexed by the same row order
         object_paths = self.get_matching_side_paths(list_widget_object)
         items = []
         for row in range(list_widget_object.count()):
@@ -1849,6 +1930,8 @@ class RiggingUtilityTool(QMainWindow):
 def show_window():
     global my_window
     # check if already window open close
+    # Closes any previously opened instance first so re-running this script doesn't
+    # stack duplicate windows; the except below covers the first run, when my_window doesn't exist yet
     try:
         my_window.close()
         my_window.deleteLater()
