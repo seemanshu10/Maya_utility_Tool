@@ -16,6 +16,8 @@ Rigging and skinning setups often involve repeating the same operation across ma
 
 All three tabs share the same Source/Target object lists and pairing logic, so you load your selection once and apply multiple operations against it. Confirmation dialogs before create/delete, and the whole batch is wrapped in a single undo chunk (`cmds.undoInfo`) so one **Ctrl+Z** undoes the entire operation.
 
+![Tool UI Showcase](gifs/ToolUiShocase.gif)
+
 ## Features
 
 ### Source / Target pairing
@@ -34,19 +36,27 @@ Object lists support loading the current Maya selection, reordering items (↑ /
 - Per-axis Translate / Rotate / Scale checkboxes (with an "All" convenience toggle) to control which axes get constrained.
 - Delete existing constraints from the Target list.
 
+| By Order | By Name |
+|---|---|
+| ![Constraint By Order](gifs/Constraint_order.gif) | ![Constraint By Name](gifs/Constraint_name.gif) |
 
 ### Connection tab
 - Batch-connect standard Translate / Rotate / Scale attributes between Source and Target, per axis.
 - Custom attribute connections between arbitrary driver/driven attribute pairs.
 - Disconnect existing connections from the Target list.
 
-![Constraint/Connection Tab](gifs\Constraint_connection_usage.gif)
+| By Order | By Name |
+|---|---|
+| ![Connection By Order](gifs/Connnection_order.gif) | ![Connection By Name](gifs/Connnection_name.gif) |
+
 ### Copy Skin tab
 - Surface association: Closest Point, Ray Cast, or Closest Component.
 - Three configurable influence association fallbacks (None, Closest Bone, Closest Joint, One To One, Label, Name), matching Maya's `copySkinWeights` options.
 - Skips pairs cleanly when a source has no skin cluster instead of failing the whole batch.
 
-![Copy Skin Tab](gifs\copy_skinusage.gif)
+| By Order | By Name |
+|---|---|
+| ![Copy Skin By Order](gifs/CopySkinOrder.gif) | ![Copy Skin By Name](gifs/CopySkinName.gif) |
 
 ## Installation
 
@@ -83,10 +93,3 @@ main.show_window()
 4. Switch to the tab for the operation you need (Constraint, Connection, or Copy Skin), configure the options, and run the action.
 5. Confirm the action in the dialog that appears.
 
-## Project Structure
-```
-main.py         # Current, actively developed version of the tool (RiggingUtilityTool)
-Plan/           # UI mockups and workflow diagrams across design iterations (V1–V3)
-```
-
-`main.py` is the entry point — it is self-contained and does not depend on any other module
