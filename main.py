@@ -605,18 +605,17 @@ class RiggingUtilityTool(QMainWindow):
         self.translate_all_checkbox_constraint.setChecked(True)
         self.rotate_all_checkbox_constraint.setChecked(True)
         self.scale_all_checkbox_constraint.setChecked(True)
-        self.translate_x_checkbox_constraint.setChecked(True)
-        self.translate_y_checkbox_constraint.setChecked(True)
-        self.translate_z_checkbox_constraint.setChecked(True)
-        self.rotate_x_checkbox_constraint.setChecked(True)
-        self.rotate_y_checkbox_constraint.setChecked(True)
-        self.rotate_z_checkbox_constraint.setChecked(True)
-        self.scale_x_checkbox_constraint.setChecked(True)
-        self.scale_y_checkbox_constraint.setChecked(True)
-        self.scale_z_checkbox_constraint.setChecked(True)
+        self.translate_x_checkbox_constraint.setChecked(False)
+        self.translate_y_checkbox_constraint.setChecked(False)
+        self.translate_z_checkbox_constraint.setChecked(False)
+        self.rotate_x_checkbox_constraint.setChecked(False)
+        self.rotate_y_checkbox_constraint.setChecked(False)
+        self.rotate_z_checkbox_constraint.setChecked(False)
+        self.scale_x_checkbox_constraint.setChecked(False)
+        self.scale_y_checkbox_constraint.setChecked(False)
+        self.scale_z_checkbox_constraint.setChecked(False)
 
         # signals for constraints
-        
         self.translate_all_checkbox_constraint.toggled.connect(self.sync_translate_all_constraint)
         self.translate_x_checkbox_constraint.toggled.connect(self.sync_translate_axis_constraint)
         self.translate_y_checkbox_constraint.toggled.connect(self.sync_translate_axis_constraint)
@@ -631,6 +630,7 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_x_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
         self.scale_y_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
         self.scale_z_checkbox_constraint.toggled.connect(self.sync_scale_axis_constraint)
+
         self.reset_constraint.clicked.connect(self.reset_constraint_options)
         
         self.create_constraint_btn.clicked.connect(self.create_constraints)
@@ -784,6 +784,20 @@ class RiggingUtilityTool(QMainWindow):
         self.driven_combobox.setToolTip("Attribute set to push to on the Driven (Target) objects")
         self.reset_connection_axes_button.setToolTip("Reset all axis checkboxes back to their default (All enabled)")
 
+        # default settings 
+        self.translate_all_checkbox_connection.setChecked(True)
+        self.rotate_all_checkbox_connection.setChecked(True)
+        self.scale_all_checkbox_connection.setChecked(True)
+        self.translate_x_checkbox_connection.setChecked(False)
+        self.translate_y_checkbox_connection.setChecked(False)
+        self.translate_z_checkbox_connection.setChecked(False)
+        self.rotate_x_checkbox_connection.setChecked(False)
+        self.rotate_y_checkbox_connection.setChecked(False)
+        self.rotate_z_checkbox_connection.setChecked(False)
+        self.scale_x_checkbox_connection.setChecked(False)
+        self.scale_y_checkbox_connection.setChecked(False)
+        self.scale_z_checkbox_connection.setChecked(False) 
+
         # create signals
         self.translate_all_checkbox_connection.toggled.connect(self.sync_translate_all_connection)
         self.translate_x_checkbox_connection.toggled.connect(self.sync_translate_axis_connection)
@@ -799,6 +813,7 @@ class RiggingUtilityTool(QMainWindow):
         self.scale_x_checkbox_connection.toggled.connect(self.sync_scale_axis_connection)
         self.scale_y_checkbox_connection.toggled.connect(self.sync_scale_axis_connection)
         self.scale_z_checkbox_connection.toggled.connect(self.sync_scale_axis_connection)
+
         self.reset_connection_axes_button.clicked.connect(self.reset_connection_options)
         self.driver_driven_group.toggled.connect(self.driver_driven_connection_axes_enable)
         self.connection_axes_group.toggled.connect(self.connection_axes_enabled)
@@ -1209,51 +1224,48 @@ class RiggingUtilityTool(QMainWindow):
     # rotate/scale below, and again for the *_connection versions further down).
     @Slot()
     def sync_translate_all_constraint(self, checked):
-        for checkbox in (self.translate_x_checkbox_constraint, self.translate_y_checkbox_constraint, self.translate_z_checkbox_constraint):
-            checkbox.blockSignals(True)
-            checkbox.setChecked(checked)
-            checkbox.blockSignals(False)
+        if checked:
+            for checkbox in (self.translate_x_checkbox_constraint, self.translate_y_checkbox_constraint, self.translate_z_checkbox_constraint):
+                checkbox.blockSignals(True)
+                checkbox.setChecked(False)
+                checkbox.blockSignals(False)
 
     @Slot()
     def sync_translate_axis_constraint(self, checked):
-        allchecked = (self.translate_x_checkbox_constraint.isChecked()
-                       and self.translate_y_checkbox_constraint.isChecked()
-                       and self.translate_z_checkbox_constraint.isChecked())
-        self.translate_all_checkbox_constraint.blockSignals(True)
-        self.translate_all_checkbox_constraint.setChecked(allchecked)
-        self.translate_all_checkbox_constraint.blockSignals(False)
+        if checked:
+            self.translate_all_checkbox_constraint.blockSignals(True)
+            self.translate_all_checkbox_constraint.setChecked(False)
+            self.translate_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
     def sync_rotate_all_constraint(self, checked):
-        for checkbox in (self.rotate_x_checkbox_constraint, self.rotate_y_checkbox_constraint, self.rotate_z_checkbox_constraint):
-            checkbox.blockSignals(True)
-            checkbox.setChecked(checked)
-            checkbox.blockSignals(False)
+        if checked:
+            for checkbox in (self.rotate_x_checkbox_constraint, self.rotate_y_checkbox_constraint, self.rotate_z_checkbox_constraint):
+                checkbox.blockSignals(True)
+                checkbox.setChecked(False)
+                checkbox.blockSignals(False)
 
     @Slot()
     def sync_rotate_axis_constraint(self, checked):
-        allchecked = (self.rotate_x_checkbox_constraint.isChecked()
-                       and self.rotate_y_checkbox_constraint.isChecked()
-                       and self.rotate_z_checkbox_constraint.isChecked())
-        self.rotate_all_checkbox_constraint.blockSignals(True)
-        self.rotate_all_checkbox_constraint.setChecked(allchecked)
-        self.rotate_all_checkbox_constraint.blockSignals(False)
+        if checked:
+            self.rotate_all_checkbox_constraint.blockSignals(True)
+            self.rotate_all_checkbox_constraint.setChecked(False)
+            self.rotate_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
     def sync_scale_all_constraint(self, checked):
-        for checkbox in (self.scale_x_checkbox_constraint, self.scale_y_checkbox_constraint, self.scale_z_checkbox_constraint):
-            checkbox.blockSignals(True)
-            checkbox.setChecked(checked)
-            checkbox.blockSignals(False)
+        if checked:
+            for checkbox in (self.scale_x_checkbox_constraint, self.scale_y_checkbox_constraint, self.scale_z_checkbox_constraint):
+                checkbox.blockSignals(True)
+                checkbox.setChecked(False)
+                checkbox.blockSignals(False)
 
     @Slot()
     def sync_scale_axis_constraint(self, checked):
-        allchecked = (self.scale_x_checkbox_constraint.isChecked()
-                       and self.scale_y_checkbox_constraint.isChecked()
-                       and self.scale_z_checkbox_constraint.isChecked())
-        self.scale_all_checkbox_constraint.blockSignals(True)
-        self.scale_all_checkbox_constraint.setChecked(allchecked)
-        self.scale_all_checkbox_constraint.blockSignals(False)
+        if checked:
+            self.scale_all_checkbox_constraint.blockSignals(True)
+            self.scale_all_checkbox_constraint.setChecked(False)
+            self.scale_all_checkbox_constraint.blockSignals(False)
 
     @Slot()
     def create_constraints(self):
@@ -1740,51 +1752,53 @@ class RiggingUtilityTool(QMainWindow):
 
     @Slot()
     def sync_translate_all_connection(self, checked):
-        for checkbox in (self.translate_x_checkbox_connection, self.translate_y_checkbox_connection, self.translate_z_checkbox_connection):
-            checkbox.blockSignals(True)
-            checkbox.setChecked(checked)
-            checkbox.blockSignals(False)
+        # "All" is exclusive with the individual axes: checking it clears X/Y/Z.
+        # Unchecking it directly leaves X/Y/Z untouched.
+        if checked:
+            for checkbox in (self.translate_x_checkbox_connection, self.translate_y_checkbox_connection, self.translate_z_checkbox_connection):
+                checkbox.blockSignals(True)
+                checkbox.setChecked(False)
+                checkbox.blockSignals(False)
 
     @Slot()
     def sync_translate_axis_connection(self, checked):
-        allchecked = (self.translate_x_checkbox_connection.isChecked()
-                       and self.translate_y_checkbox_connection.isChecked()
-                       and self.translate_z_checkbox_connection.isChecked())
-        self.translate_all_checkbox_connection.blockSignals(True)
-        self.translate_all_checkbox_connection.setChecked(allchecked)
-        self.translate_all_checkbox_connection.blockSignals(False)
+        if checked:
+            # print("Turning All off")
+            self.translate_all_checkbox_connection.blockSignals(True)
+            self.translate_all_checkbox_connection.setChecked(False)
+            self.translate_all_checkbox_connection.blockSignals(False)
 
     @Slot()
     def sync_rotate_all_connection(self, checked):
-        for checkbox in (self.rotate_x_checkbox_connection, self.rotate_y_checkbox_connection, self.rotate_z_checkbox_connection):
-            checkbox.blockSignals(True)
-            checkbox.setChecked(checked)
-            checkbox.blockSignals(False)
+        if checked:
+            for checkbox in (self.rotate_x_checkbox_connection, self.rotate_y_checkbox_connection, self.rotate_z_checkbox_connection):
+                checkbox.blockSignals(True)
+                checkbox.setChecked(False)
+                checkbox.blockSignals(False)
 
     @Slot()
     def sync_rotate_axis_connection(self, checked):
-        allchecked = (self.rotate_x_checkbox_connection.isChecked()
-                       and self.rotate_y_checkbox_connection.isChecked()
-                       and self.rotate_z_checkbox_connection.isChecked())
-        self.rotate_all_checkbox_connection.blockSignals(True)
-        self.rotate_all_checkbox_connection.setChecked(allchecked)
-        self.rotate_all_checkbox_connection.blockSignals(False)
+        if checked:
+           
+            self.rotate_all_checkbox_connection.blockSignals(True)
+            self.rotate_all_checkbox_connection.setChecked(False)
+            self.rotate_all_checkbox_connection.blockSignals(False)
 
     @Slot()
     def sync_scale_all_connection(self, checked):
-        for checkbox in (self.scale_x_checkbox_connection, self.scale_y_checkbox_connection, self.scale_z_checkbox_connection):
-            checkbox.blockSignals(True)
-            checkbox.setChecked(checked)
-            checkbox.blockSignals(False)
+        if checked:
+            for checkbox in (self.scale_x_checkbox_connection, self.scale_y_checkbox_connection, self.scale_z_checkbox_connection):
+                checkbox.blockSignals(True)
+                checkbox.setChecked(False)
+                checkbox.blockSignals(False)
 
     @Slot()
     def sync_scale_axis_connection(self, checked):
-        allchecked = (self.scale_x_checkbox_connection.isChecked()
-                       and self.scale_y_checkbox_connection.isChecked()
-                       and self.scale_z_checkbox_connection.isChecked())
-        self.scale_all_checkbox_connection.blockSignals(True)
-        self.scale_all_checkbox_connection.setChecked(allchecked)
-        self.scale_all_checkbox_connection.blockSignals(False)
+        if checked:
+            self.scale_all_checkbox_connection.blockSignals(True)
+            self.scale_all_checkbox_connection.setChecked(False)
+            self.scale_all_checkbox_connection.blockSignals(False)
+      
 
     # These reset the axis to default values 
     @Slot()
@@ -1884,7 +1898,6 @@ class RiggingUtilityTool(QMainWindow):
                 cmds.delete(constraints)
 
         print("Deleted Constraints")
-
 
 
     # connection_axes_group and driver_driven_group are two independent checkable
